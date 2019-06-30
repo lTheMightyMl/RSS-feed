@@ -100,3 +100,6 @@ fabric.properties
 .idea/sonarlint/
 .idea/sqldialects.xml
 RSS feed.iml
+src/main/resources/
+target/classes/META-INF/
+target/generated-sources/
