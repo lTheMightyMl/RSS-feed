@@ -24,8 +24,6 @@ public class App {
                 "\tWHERE table_schema = 'public'\n" +
                 "\tAND table_name = 'NEWS_AGENCIE'\n" +
                 ");")) {
-            while (resultSet.next())
-                System.out.println(resultSet);
         } catch (SQLException e) {
             final HashMap<String, String> newsAgencies = new HashMap<>();
             initDefaultValues(newsAgencies);
