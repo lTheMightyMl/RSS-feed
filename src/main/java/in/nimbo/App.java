@@ -35,18 +35,27 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException, FeedException, SQLException {
-        Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-        writeToDB(connection);
-        readFromDB(connection);
-        connection.close();
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD)) {
+            writeToDB(connection);
+            readFromDB(connection);
+        }
     }
 
-    private static void writeToDB(Connection connection) throws IOException, FeedException {
+    private static void writeToDB(Connection connection) throws IOException, FeedException, SQLException {
+        Statement statement = connection.createStatement();
+        statement.execute("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '" + TABLE + "') THEN CREATE TABLE " + TABLE + "(" +
+                "    title          text,\n" +
+                "    published_date text,\n" +
+                "    description    text,\n" +
+                "    author         text\n" +
+                ");" +
+                " END IF; END $$;");
         Properties newsAgencies = loadAgencies();
         Enumeration<?> agencyNames = newsAgencies.propertyNames();
-        while (agencyNames.hasMoreElements())
-            processAgency(connection, agencyNames.nextElement().toString(), newsAgencies.getProperty(agencyNames.
-                    nextElement().toString()));
+        while (agencyNames.hasMoreElements()) {
+            Object agency = agencyNames.nextElement();
+            processAgency(connection, agency.toString(), newsAgencies.getProperty(agency.toString()));
+        }
     }
 
     private static void processAgency(Connection connection, String agencyName, String agencyURL) throws FeedException,
