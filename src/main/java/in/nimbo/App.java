@@ -1,5 +1,6 @@
 package in.nimbo;
 
+import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
@@ -18,7 +19,6 @@ public class App {
     private static final String USER;
     private static final String PASSWORD;
     private static final String TABLE;
-    private static final String NEWS_AGENCIES = "NEWS_AGENCIES";
 
     static {
         Properties databaseProperties = new Properties();
@@ -35,38 +35,59 @@ public class App {
     }
 
     public static void main(String[] args) throws IOException, FeedException, SQLException {
+        Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+        writeToDB(connection);
+        readFromDB(connection);
+        connection.close();
+    }
+
+    private static void writeToDB(Connection connection) throws IOException, FeedException {
+        Properties newsAgencies = loadAgencies();
+        Enumeration<?> agencyNames = newsAgencies.propertyNames();
+        while (agencyNames.hasMoreElements())
+            processAgency(connection, agencyNames.nextElement().toString(), newsAgencies.getProperty(agencyNames.
+                    nextElement().toString()));
+    }
+
+    private static void processAgency(Connection connection, String agencyName, String agencyURL) throws FeedException,
+            IOException {
+        System.out.println(agencyName);
+        SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(agencyURL)));
+        feed.getEntries().forEach(entry -> {
+            processEntry(connection, entry);
+        });
+    }
+
+    private static void processEntry(Connection connection, SyndEntry entry) {
+        String title = entry.getTitle();
+        Date publishedDate = entry.getPublishedDate();
+        String description = entry.getDescription().getValue();
+        String author = entry.getAuthor();
+        System.out.println(title);
+        System.out.println(publishedDate);
+        System.out.println(description);
+        System.out.println(author);
+        System.out.println();
+        try (Statement statement = connection.createStatement()) {
+            statement.closeOnCompletion();
+            statement.executeUpdate("INSERT INTO " + TABLE + " VALUES ('" + title + "', '" + publishedDate + "', '"
+                    + description + "', '" + author + "');");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Properties loadAgencies() throws IOException {
         Properties newsAgencies = new Properties();
         newsAgencies.load(new FileInputStream(Thread.currentThread().getContextClassLoader().getResource("news" +
                 "Agencies.properties").getPath()));
-        Enumeration<?> propertyNames = newsAgencies.propertyNames();
-        Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-        while (propertyNames.hasMoreElements()) {
-            String agencyName = propertyNames.nextElement().toString();
-            URL feedSource = new URL(newsAgencies.getProperty(agencyName));
-            SyndFeedInput input = new SyndFeedInput();
-            SyndFeed feed = input.build(new XmlReader(feedSource));
-            System.out.println(agencyName);
-            feed.getEntries().forEach(entry -> {
-                String title = entry.getTitle();
-                Date publishedDate = entry.getPublishedDate();
-                String description = entry.getDescription().getValue();
-                String author = entry.getAuthor();
-                System.out.println(title);
-                System.out.println(publishedDate);
-                System.out.println(description);
-                System.out.println(author);
-                try {
-                    Statement statement = connection.createStatement();
-                    statement.closeOnCompletion();
-                    statement.executeUpdate("INSERT INTO " + TABLE + " VALUES ('" + title + "', '" + publishedDate + "', '" + description + "', '" + author + "');");
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-        ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM " + TABLE + ";");
-        while (resultSet.next()) {
-            System.err.println(resultSet.getString("title"));
+        return newsAgencies;
+    }
+
+    private static void readFromDB(Connection connection) throws SQLException {
+        try (ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM " + TABLE + ";")) {
+            while (resultSet.next())
+                System.err.println(resultSet.getString("title"));
         }
     }
 }
