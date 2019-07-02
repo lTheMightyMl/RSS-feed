@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Enumeration;
@@ -40,9 +39,7 @@ public class App {
             IOException {
         LOGGER.info(agencyName);
         SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(agencyURL)));
-        feed.getEntries().forEach(entry -> {
-            processEntry(table, agencyName, entry);
-        });
+        feed.getEntries().forEach(entry -> processEntry(table, agencyName, entry));
     }
 
     private static void processEntry(Table table, String agencyName, SyndEntry entry) {
