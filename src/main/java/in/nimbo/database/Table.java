@@ -31,12 +31,11 @@ public class Table {
     }
 
     private final PreparedStatement searchTitle;
-    private final PreparedStatement insert;
     private final PreparedStatement searchTitleInDate;
     private final PreparedStatement searchDescriptionInDate;
+    private final String name;
 
     public Table(final String name) throws SQLException {
-        Connection insertConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         Connection searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         Connection searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         Connection searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -46,24 +45,26 @@ public class Table {
                     "WHERE table_schema = 'public' AND table_name = '%s') THEN CREATE TABLE %s(agency text, " +
                     "title text, published_date timestamp without time zone, description text, author text); " +
                     "END IF; END $$;", name, name));
-            insert = insertConnection.prepareStatement(String.format("INSERT INTO %s VALUES (?, ?, ?, ?, ?)", name));
             searchTitle = searchTitleConnection.prepareStatement(String.format("SELECT * FROM %s WHERE title ~ ?;", name
             ));
             searchTitleInDate = searchTitleInDateConnection.prepareStatement(String.format("SELECT * FROM %s WHERE " +
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
-            searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * FROM %s WHERE " +
-                    "description ~ ? AND published_date >= ? AND published_date <= ?;", name));
+            searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
+                    "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
         }
+        this.name = name;
     }
 
     public void insert(final String agencyName, final String title, final Date publishedDate, final String description,
                        final String author) throws SQLException {
-        insert.setString(1, agencyName);
-        insert.setString(2, title);
-        insert.setTimestamp(3, new Timestamp(publishedDate.getTime()));
-        insert.setString(4, description);
-        insert.setString(5, author);
-        insert.executeUpdate();
+        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             final Statement statement = connection.createStatement()) {
+            statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM %s WHERE agency = '%s' " +
+                    "AND title = '%s') THEN INSERT INTO %s(agency, title, published_date, description, author) " +
+                    "VALUES ('%s', '%s', TIMESTAMP (6) WITHOUT TIME ZONE '%s', '%s', '%s'); END IF; END $$;", name,
+                    agencyName, title, name, agencyName, title, new Timestamp(publishedDate.getTime()), description,
+                    author));
+        }
     }
 
     public ResultSet searchTitle(final String title) throws SQLException {
