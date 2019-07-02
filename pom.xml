@@ -17,36 +17,27 @@
     </properties>
 
     <dependencies>
-
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>42.2.6</version>
         </dependency>
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
-
             <groupId>com.rometools</groupId>
             <artifactId>rome</artifactId>
             <version>1.12.1</version>
-
         </dependency>
-
         <dependency>
-
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.9</version>
-
         </dependency>
-
     </dependencies>
 
     <build>
