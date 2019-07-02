@@ -111,3 +111,6 @@ fabric.properties
 .idea/misc.xml
 .idea/sonarlint/
 rssfeed.iml
+/.idea/RSS-feed.iml
+/.idea/codeStyles/Project.xml
+/.idea/modules.xml
