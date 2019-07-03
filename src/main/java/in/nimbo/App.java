@@ -9,8 +9,6 @@ import in.nimbo.database.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
@@ -41,6 +39,7 @@ public class App {
     private static final String NEWRSS = "new_rss";
 
     public static void main(String[] args) {
+        ExternalData.loadProperties();
         Table rssFeeds = null;
         try {
             rssFeeds = new Table("rss_feeds");
@@ -55,6 +54,8 @@ public class App {
                 decide(rssFeeds, command);
             } catch (ParseException | SQLException e) {
                 LOGGER.error("", e);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -98,7 +99,7 @@ public class App {
         }
 
         for (Map.Entry<String, String> agenc: agencies.entrySet()) {
-            addAgency(agenc.getKey(), agenc.getValue());
+            ExternalData.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
 
@@ -147,11 +148,9 @@ public class App {
     }
 
     private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
-        Properties newsAgencies = loadAgencies();
-        Enumeration<?> agencyNames = newsAgencies.propertyNames();
-        while (agencyNames.hasMoreElements()) {
-            Object agency = agencyNames.nextElement();
-            processAgency(rssFeeds, agency.toString(), newsAgencies.getProperty(agency.toString()));
+        HashMap<String, String> agencies = ExternalData.getAllAgencies();
+        for (Map.Entry<String, String> agency : agencies.entrySet()) {
+            processAgency(rssFeeds, agency.getKey(), agency.getValue());
         }
     }
 
@@ -175,17 +174,4 @@ public class App {
         }
     }
 
-    private static Properties loadAgencies() throws IOException {
-        Properties newsAgencies = new Properties();
-        newsAgencies.load(new FileInputStream(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().
-                getResource("news" +
-                        "Agencies.properties")).getPath()));
-        return newsAgencies;
-    }
-
-    private static void addAgency(String agencyName, String rssUrl) throws IOException {
-        Properties agencies = new Properties();
-        agencies.setProperty(agencyName, rssUrl);
-        agencies.store(new FileOutputStream("src/main/resources/newsAgencies.properties"), null);
-    }
 }
