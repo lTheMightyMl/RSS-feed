@@ -51,25 +51,27 @@ public class Table {
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
                     "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
-             final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
-                     "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
-                     " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
-                     "zone, description text, author text); END IF; END $$;", name, name))) {
-            // its better to use execute() https://jdbc.postgresql.org/documentation/head/ddl.html
-            preparedStatement.executeUpdate();
         }
         this.name = name;
     }
 
-    public void insert(final String agencyName, final String title, final Date publishedDate, final String description,
-                       final String author) throws SQLException {
+    public void insert(String agencyName, String title, Date publishedDate, String description, String author) throws
+            SQLException {
+        if (agencyName.isEmpty())
+            agencyName = " ";
+        if (title.isEmpty())
+            title = " ";
+        if (description.isEmpty())
+            description = " ";
+        if (author.isEmpty())
+            author = " ";
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              final Statement statement = connection.createStatement()) {
-            statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM %s WHERE agency = '%s' " +
-                    "AND title = '%s') THEN INSERT INTO %s(agency, title, published_date, description, author) " +
-                    "VALUES ('%s', '%s', TIMESTAMP (6) WITHOUT TIME ZONE '%s', '%s', '%s'); END IF; END $$;", name,
-                    agencyName, title, name, agencyName, title, new Timestamp(publishedDate.getTime()), description,
-                    author));
+            statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM %s WHERE agency = $one$%s$" +
+                    "one$ AND title = $two$%s$two$) THEN INSERT INTO %s(agency, title, published_date, description, " +
+                    "author) VALUES ($three$%s$three$, $four$%s$four$, TIMESTAMP (6) $five$%s$five$, $six$%s$six$, $" +
+                    "seven$%s$seven$); END IF; END $$;", name, agencyName, title, name, agencyName, title, new Timestamp
+                    (publishedDate.getTime()), description, author));
         }
     }
       
@@ -90,6 +92,7 @@ public class Table {
         searchDescriptionInDate.setTimestamp(2, new Timestamp(from.getTime()));
         searchDescriptionInDate.setTimestamp(3, new Timestamp(to.getTime()));
         return searchDescriptionInDate.executeQuery();
+    }
   
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
 

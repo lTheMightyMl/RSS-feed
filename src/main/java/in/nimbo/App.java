@@ -68,7 +68,6 @@ public class App {
                 LOGGER.error("", e);
             }
         }
-
     }
 
     private static void decide(Table rssFeeds, String command) throws SQLException, ParseException {

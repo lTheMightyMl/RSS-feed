@@ -33,11 +33,6 @@
             <artifactId>rome</artifactId>
             <version>1.12.1</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.9</version>
-        </dependency>
     </dependencies>
 
     <build>
@@ -92,6 +87,11 @@
                     <source>8</source>
                     <target>8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.1.6.RELEASE</version>
             </plugin>
         </plugins>
     </build>
