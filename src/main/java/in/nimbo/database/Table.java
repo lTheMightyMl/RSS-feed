@@ -50,7 +50,7 @@ public class Table {
             preparedStatement.executeUpdate();
         }
     }
-
+  
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
 
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -83,5 +83,4 @@ public class Table {
             return preparedStatement.executeQuery();
         }
     }
-
 }
