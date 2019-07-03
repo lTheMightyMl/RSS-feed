@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.ResultSet;
@@ -37,6 +38,7 @@ public class App {
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
+    private static final String NEWRSS = "new_rss";
 
     public static void main(String[] args) {
         Table rssFeeds = null;
@@ -58,13 +60,46 @@ public class App {
 
     }
 
-    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException {
+    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException, IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
             searchTitleInDate(rssFeeds, command);
         else if (command.matches(SEARCH_DESCRIPTION_AND_DATE))
             searchDescriptionInDate(rssFeeds, command);
+        else if (command.matches(NEWRSS))
+            addNewRss(command);
+    }
+
+    private static void addNewRss(String command) throws IOException {
+
+        String agencyName;
+        String rssUrl;
+        int index = 7;  // to find name of agency by storing the index of space after prev command
+        final HashMap<String, String> agencies = new HashMap<>();
+
+        final Pattern urlPattern = Pattern.compile(
+                "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
+                        + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
+
+        Matcher matcher = urlPattern.matcher(command);
+        while (matcher.find()) {
+            rssUrl = matcher.group(1);
+            agencyName = command.substring(index, matcher.start()).trim();
+
+            if (agencyName.equals("")) {
+                System.out.println("bad command format: agency name required for every agency");
+                return;
+            } else {
+                agencies.put(agencyName, rssUrl);
+            }
+
+            index = matcher.end() + 1;
+        }
+
+        for (Map.Entry<String, String> agenc: agencies.entrySet()) {
+            addAgency(agenc.getKey(), agenc.getValue());
+        }
     }
 
     private static void searchDescriptionInDate(final Table rssFeeds, final String command) throws ParseException,
@@ -146,5 +181,11 @@ public class App {
                 getResource("news" +
                         "Agencies.properties")).getPath()));
         return newsAgencies;
+    }
+
+    private static void addAgency(String agencyName, String rssUrl) throws IOException {
+        Properties agencies = new Properties();
+        agencies.setProperty(agencyName, rssUrl);
+        agencies.store(new FileOutputStream("src/main/resources/newsAgencies.properties"), null);
     }
 }
