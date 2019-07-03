@@ -37,11 +37,24 @@ public class App {
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
+    private static final String TABLE;
+
+    static {
+        Properties databaseProperties = new Properties();
+        try {
+            databaseProperties.load(new FileInputStream(Objects.requireNonNull(Thread.currentThread().
+                    getContextClassLoader().getResource("database.properties")).getPath()));
+        } catch (IOException e) {
+            LOGGER.error("", e);
+            System.exit(0);
+        }
+        TABLE = databaseProperties.getProperty("table");
+    }
 
     public static void main(String[] args) {
         Table rssFeeds = null;
         try {
-            rssFeeds = new Table("rss_feeds");
+            rssFeeds = new Table(TABLE);
             writeToDB(rssFeeds);
         } catch (FeedException | SQLException | IOException e) {
             LOGGER.error("", e);
