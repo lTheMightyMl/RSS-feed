@@ -1,6 +1,9 @@
 package in.nimbo;
 
+import in.nimbo.exeption.BadPropertiesFile;
 import org.junit.Test;
+
+import java.io.IOException;
 
 import static org.junit.Assert.*;
 
@@ -11,6 +14,12 @@ public class ExternalDataTest {
      */
     @Test
     public void loadProperties() {
+        try {
+            ExternalData.loadProperties("src/test/resources/externalDatas.properties");
+        } catch (BadPropertiesFile | IOException badPropertiesFile) {
+//            badPropertiesFile.printStackTrace();
+            fail();
+        }
     }
 
     /**
@@ -18,11 +27,22 @@ public class ExternalDataTest {
      */
     @Test
     public void badLoadProperties() {
-
+        try {
+            ExternalData.loadProperties("src/test/resources/badExternalDatas.properties");
+        } catch (BadPropertiesFile | IOException badPropertiesFile) {
+//            badPropertiesFile.printStackTrace();
+            assertTrue(true);
+        }
+        fail();
     }
 
     @Test
     public void getPropertyValue() {
+        try {
+            ExternalData.loadProperties("src/test/resources/externalDatas.properties");
+        } catch (BadPropertiesFile | IOException badPropertiesFile) {
+//            badPropertiesFile.printStackTrace();
+        }
     }
 
     @Test
