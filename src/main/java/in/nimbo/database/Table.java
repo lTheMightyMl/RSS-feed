@@ -1,39 +1,21 @@
 package in.nimbo.database;
 
+import in.nimbo.ExternalData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.*;
 import java.util.Date;
-import java.util.Objects;
-import java.util.Properties;
 
 public class Table {
     private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
-    private static final String URL;
-    private static final String USER;
-    private static final String PASSWORD;
-
-    static {
-        Properties databaseProperties = new Properties();
-        try {
-            databaseProperties.load(new FileInputStream(Objects.requireNonNull(Thread.currentThread().
-                    getContextClassLoader().getResource("database.properties")).getPath()));
-        } catch (IOException e) {
-            LOGGER.error("", e);
-            System.exit(0);
-        }
-        URL = databaseProperties.getProperty("url");
-        USER = databaseProperties.getProperty("user");
-        PASSWORD = databaseProperties.getProperty("password");
-    }
-
-    private final PreparedStatement searchTitle;
-    private final PreparedStatement searchTitleInDate;
-    private final PreparedStatement searchDescriptionInDate;
-    private final String name;
+    private static final String URL = ExternalData.getPropertyValue("url");
+    private static final String USER = ExternalData.getPropertyValue("user");
+    private static final String PASSWORD = ExternalData.getPropertyValue("password");
+    private PreparedStatement searchTitle;
+    private PreparedStatement searchTitleInDate;
+    private PreparedStatement searchDescriptionInDate;
+    private String name;
 
     public Table(final String name) throws SQLException {
         Connection searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -54,11 +36,12 @@ public class Table {
              final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
                      "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
                      " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
-                     "zone, description text, author text); END IF; END $$;", name, name))) {
+                     "zone, description text, author text); END IF; END $$;", name, name)) {
             // its better to use execute() https://jdbc.postgresql.org/documentation/head/ddl.html
             preparedStatement.executeUpdate();
         }
         this.name = name;
+    }
     }
 
     public void insert(final String agencyName, final String title, final Date publishedDate, final String description,
@@ -90,7 +73,8 @@ public class Table {
         searchDescriptionInDate.setTimestamp(2, new Timestamp(from.getTime()));
         searchDescriptionInDate.setTimestamp(3, new Timestamp(to.getTime()));
         return searchDescriptionInDate.executeQuery();
-  
+    }
+
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
 
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
