@@ -36,13 +36,13 @@ public class Table {
              final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
                      "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
                      " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
-                     "zone, description text, author text); END IF; END $$;", name, name)) {
+                     "zone, description text, author text); END IF; END $$;", name, name));
             // its better to use execute() https://jdbc.postgresql.org/documentation/head/ddl.html
             preparedStatement.executeUpdate();
         }
         this.name = name;
     }
-    }
+
 
     public void insert(final String agencyName, final String title, final Date publishedDate, final String description,
                        final String author) throws SQLException {
