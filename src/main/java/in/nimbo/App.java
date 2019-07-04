@@ -6,6 +6,7 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import in.nimbo.database.Table;
+import in.nimbo.exeption.BadPropertiesFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,23 @@ public class App {
     private static final String NEWRSS = "new_rss";
 
     public static void main(String[] args) {
-        ExternalData.loadProperties();
+
+        try {
+            ExternalData.loadProperties(args[0]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("Please pass address of properties file as argument");
+            LOGGER.error("address of properties missing", e);
+            System.exit(0);
+        } catch (BadPropertiesFile badPropertiesFile) {
+            System.out.println("Bad properties file");
+            LOGGER.error("database properties missing in properties file", badPropertiesFile);
+            System.exit(0);
+        } catch (IOException e) {
+            System.out.println("Wrong file path");
+            LOGGER.error("given path for properties files is not exist");
+            System.exit(0);
+        }
+
         Table rssFeeds = null;
         try {
             rssFeeds = new Table("rss_feeds");
@@ -47,6 +64,7 @@ public class App {
         } catch (FeedException | SQLException | IOException e) {
             LOGGER.error("", e);
         }
+
         String command = SCANNER.nextLine().trim();
         while (!command.matches(EXIT)) {
             command = SCANNER.nextLine().trim();
