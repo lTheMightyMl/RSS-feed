@@ -40,10 +40,10 @@ public class Table {
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
                     "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
-             final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
-                     "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
-                     " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
-                     "zone, description text, author text); END IF; END $$;", name, name));
+            final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
+                    "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
+                    " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
+                    "zone, description text, author text); END IF; END $$;", name, name));
             // its better to use execute() https://jdbc.postgresql.org/documentation/head/ddl.html
             preparedStatement.executeUpdate();
         }
