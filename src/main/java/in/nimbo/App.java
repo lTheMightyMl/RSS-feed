@@ -68,7 +68,13 @@ public class App {
         final Table rssFeeds;
         try {
             rssFeeds = new Table(ExternalData.getPropertyValue("table"));
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> rssFeeds.close()));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    rssFeeds.close();
+                } catch (SQLException e) {
+                    LOGGER.error("", e);
+                }
+            }));
             writeToDB(rssFeeds);
             String command = SCANNER.nextLine().trim();
             while (!command.matches(EXIT)) {

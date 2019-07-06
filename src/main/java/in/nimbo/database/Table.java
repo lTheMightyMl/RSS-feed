@@ -15,15 +15,25 @@ public class Table {
     private final Connection searchTitleConnection;
     private final Connection searchTitleInDateConnection;
     private final Connection searchDescriptionInDateConnection;
-    private PreparedStatement searchTitle;
-    private PreparedStatement searchTitleInDate;
-    private PreparedStatement searchDescriptionInDate;
+    private final Connection searchOnTitleInSpecificSiteConnection;
+    private final Connection searchOnContentInSpecificSiteConnection;
+    ;
+    private final Connection searchOnContentConnection;
+    private final PreparedStatement searchTitle;
+    private final PreparedStatement searchTitleInDate;
+    private final PreparedStatement searchDescriptionInDate;
+    private final PreparedStatement searchOnTitleInSpecificSite;
+    private final PreparedStatement searchOnContentInSpecificSite;
+    private final PreparedStatement searchOnContent;
     private String name;
 
     public Table(final String name) throws SQLException {
         searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              final Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.tables " +
@@ -36,6 +46,12 @@ public class Table {
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
                     "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
+            searchOnTitleInSpecificSite = this.searchOnTitleInSpecificSiteConnection.prepareStatement(
+                    "SELECT * FROM ? WHERE agency = ? AND title LIKE '%?%';");
+            searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement("SELECT * " +
+                    "FROM ? WHERE agency = ? AND description LIKE '%?%'");
+            searchOnContent = searchOnContentConnection.prepareStatement("SELECT * FROM ? WHERE description " +
+                    "LIKE '%?%'");
         }
         this.name = name;
     }
@@ -80,47 +96,37 @@ public class Table {
     }
 
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE agency = ? AND title LIKE '%?%';")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, agencyName);
-            preparedStatement.setString(3, title);
-            return preparedStatement.executeQuery();
-        }
+        searchOnTitleInSpecificSite.setString(1, name);
+        searchOnTitleInSpecificSite.setString(2, agencyName);
+        searchOnTitleInSpecificSite.setString(3, title);
+        return searchOnTitleInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContentInSpecificSite(String agencyName, String content) throws SQLException {
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE agency = ? AND description LIKE '%?%'")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, agencyName);
-            preparedStatement.setString(3, content);
-            return preparedStatement.executeQuery();
-        }
+        searchOnContentInSpecificSite.setString(1, name);
+        searchOnContentInSpecificSite.setString(2, agencyName);
+        searchOnContentInSpecificSite.setString(3, content);
+        return searchOnContentInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContent(String content) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE description LIKE '%?%'")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, content);
-            return preparedStatement.executeQuery();
-        }
+        searchOnContent.setString(1, name);
+        searchOnContent.setString(2, content);
+        return searchOnContent.executeQuery();
     }
 
-    public void close() {
-        try {
-            searchTitleConnection.close();
-            searchTitleInDateConnection.close();
-            searchDescriptionInDateConnection.close();
-            searchTitle.close();
-            searchTitleInDate.close();
-            searchDescriptionInDate.close();
-        } catch (SQLException e) {
-            LOGGER.error("", e);
-        }
+    public void close() throws SQLException {
+        searchTitleConnection.close();
+        searchTitleInDateConnection.close();
+        searchDescriptionInDateConnection.close();
+        searchOnTitleInSpecificSiteConnection.close();
+        searchOnContentInSpecificSiteConnection.close();
+        searchOnContent.close();
+        searchTitle.close();
+        searchTitleInDate.close();
+        searchDescriptionInDate.close();
+        searchOnTitleInSpecificSite.close();
+        searchOnContentInSpecificSite.close();
+        searchOnContent.close();
     }
 }
