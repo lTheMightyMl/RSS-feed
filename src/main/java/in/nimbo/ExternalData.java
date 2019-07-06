@@ -1,6 +1,6 @@
 package in.nimbo;
 
-import in.nimbo.exeption.BadPropertiesFile;
+import in.nimbo.exception.BadPropertiesFile;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
