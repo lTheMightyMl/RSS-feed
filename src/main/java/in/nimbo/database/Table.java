@@ -17,7 +17,6 @@ public class Table {
     private final Connection searchDescriptionInDateConnection;
     private final Connection searchOnTitleInSpecificSiteConnection;
     private final Connection searchOnContentInSpecificSiteConnection;
-    ;
     private final Connection searchOnContentConnection;
     private final PreparedStatement searchTitle;
     private final PreparedStatement searchTitleInDate;
