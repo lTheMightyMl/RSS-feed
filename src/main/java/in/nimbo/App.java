@@ -6,6 +6,7 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import in.nimbo.database.Table;
+import in.nimbo.exeption.BadPropertiesFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,25 +40,29 @@ public class App {
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
-    private static final String TABLE;
+    private static final String NEWRSS = "new_rss";
     private static final String AGENCY = "agency";
 
-    static {
-        Properties databaseProperties = new Properties();
+    public static void main(String[] args) {
         try {
-            databaseProperties.load(new FileInputStream(Objects.requireNonNull(Thread.currentThread().
-                    getContextClassLoader().getResource("database.properties")).getPath()));
+            ExternalData.loadProperties(args[0]);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("Please pass address of properties file as argument");
+            LOGGER.error("address of properties missing", e);
+            System.exit(0);
+        } catch (BadPropertiesFile badPropertiesFile) {
+            System.out.println("Bad properties file");
+            LOGGER.error("database properties missing in properties file", badPropertiesFile);
+            System.exit(0);
         } catch (IOException e) {
-            LOGGER.error("", e);
+            System.out.println("Wrong file path");
+            LOGGER.error("given path for properties files is not exist");
             System.exit(0);
         }
-        TABLE = databaseProperties.getProperty("table");
-    }
 
-    public static void main(String[] args) {
         final Table rssFeeds;
         try {
-            rssFeeds = new Table(TABLE);
+            rssFeeds = new Table(ExternalData.getPropertyValue("table"));
             Runtime.getRuntime().addShutdownHook(new Thread(() -> rssFeeds.close()));
             writeToDB(rssFeeds);
             String command = SCANNER.nextLine().trim();
@@ -65,18 +70,51 @@ public class App {
                 decide(rssFeeds, command);
                 command = SCANNER.nextLine().trim();
             }
-        } catch (SQLException | IOException | ParseException e) {
+        } catch (SQLException | IOException | ParseException| FeedException e) {
             LOGGER.error("", e);
         }
     }
 
-    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException {
+    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException, IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
             searchTitleInDate(rssFeeds, command);
         else if (command.matches(SEARCH_DESCRIPTION_AND_DATE))
             searchDescriptionInDate(rssFeeds, command);
+        else if (command.matches(NEWRSS))
+            addNewRss(command);
+    }
+
+    private static void addNewRss(String command) throws IOException {
+
+        String agencyName;
+        String rssUrl;
+        int index = 7;  // to find name of agency by storing the index of space after prev command
+        final HashMap<String, String> agencies = new HashMap<>();
+
+        final Pattern urlPattern = Pattern.compile(
+                "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
+                        + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
+
+        Matcher matcher = urlPattern.matcher(command);
+        while (matcher.find()) {
+            rssUrl = matcher.group(1);
+            agencyName = command.substring(index, matcher.start()).trim();
+
+            if (agencyName.equals("")) {
+                System.out.println("bad command format: agency name required for every agency");
+                return;
+            } else {
+                agencies.put(agencyName, rssUrl);
+            }
+
+            index = matcher.end() + 1;
+        }
+
+        for (Map.Entry<String, String> agenc: agencies.entrySet()) {
+            ExternalData.addProperty(agenc.getKey(), agenc.getValue());
+        }
     }
 
     private static void searchDescriptionInDate(final Table rssFeeds, final String command) throws ParseException,
@@ -123,15 +161,14 @@ public class App {
         LOGGER.info(author);
     }
 
-    private static void writeToDB(final Table rssFeeds) throws IOException {
-        Properties newsAgencies = loadAgencies();
-        Enumeration<?> agencyNames = newsAgencies.propertyNames();
-        final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(newsAgencies.size());
-        while (agencyNames.hasMoreElements()) {
-            Object agency = agencyNames.nextElement();
+    private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
+        HashMap<String, String> agencies = ExternalData.getAllAgencies();
+        final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
+        for (Map.Entry<String, String> agency : agencies.entrySet()) {
+            processAgency(rssFeeds, agency.getKey(), agency.getValue());
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(() -> {
                 try {
-                    processAgency(rssFeeds, agency.toString(), newsAgencies.getProperty(agency.toString()));
+                    processAgency(rssFeeds, agency.getKey(), agency.getValue());
                 } catch (FeedException | IOException e) {
                     LOGGER.error("", e);
                 }
@@ -158,11 +195,4 @@ public class App {
         }
     }
 
-    private static Properties loadAgencies() throws IOException {
-        Properties newsAgencies = new Properties();
-        newsAgencies.load(new FileInputStream(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().
-                getResource("news" +
-                        "Agencies.properties")).getPath()));
-        return newsAgencies;
-    }
 }
