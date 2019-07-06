@@ -17,6 +17,8 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +40,7 @@ public class App {
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
     private static final String TABLE;
+    private static final String AGENCY = "agency";
 
     static {
         Properties databaseProperties = new Properties();
@@ -52,21 +55,18 @@ public class App {
     }
 
     public static void main(String[] args) {
-        Table rssFeeds = null;
+        final Table rssFeeds;
         try {
             rssFeeds = new Table(TABLE);
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> rssFeeds.close()));
             writeToDB(rssFeeds);
-        } catch (FeedException | SQLException | IOException e) {
-            LOGGER.error("", e);
-        }
-        String command = SCANNER.nextLine().trim();
-        while (!command.matches(EXIT)) {
-            command = SCANNER.nextLine().trim();
-            try {
+            String command = SCANNER.nextLine().trim();
+            while (!command.matches(EXIT)) {
                 decide(rssFeeds, command);
-            } catch (ParseException | SQLException e) {
-                LOGGER.error("", e);
+                command = SCANNER.nextLine().trim();
             }
+        } catch (SQLException | IOException | ParseException e) {
+            LOGGER.error("", e);
         }
     }
 
@@ -89,7 +89,7 @@ public class App {
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {
         while (resultSet.next())
-            printFeed(resultSet.getString(TITLE_LITERAL), new Date(resultSet.getTimestamp(PUBLISHED_DATE).getTime()),
+            printFeed(resultSet.getString(AGENCY), resultSet.getString(TITLE_LITERAL), new Date(resultSet.getTimestamp(PUBLISHED_DATE).getTime()),
                     resultSet.getString(DESCRIPTION_LITERAL), resultSet.getString(AUTHOR));
     }
 
@@ -113,28 +113,35 @@ public class App {
         }
     }
 
-    private static void printFeed(final String title, final Date publishedDate, final String description, final String
+    private static void printFeed(final String agency, final String title, final Date publishedDate, final String description, final String
             author) {
+        LOGGER.info(agency);
         LOGGER.info(title);
         final String publishedDateString = publishedDate.toString();
         LOGGER.info(publishedDateString);
         LOGGER.info(description);
         LOGGER.info(author);
-        LOGGER.info("");
     }
 
-    private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
+    private static void writeToDB(final Table rssFeeds) throws IOException {
         Properties newsAgencies = loadAgencies();
         Enumeration<?> agencyNames = newsAgencies.propertyNames();
+        final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(newsAgencies.size());
         while (agencyNames.hasMoreElements()) {
             Object agency = agencyNames.nextElement();
-            processAgency(rssFeeds, agency.toString(), newsAgencies.getProperty(agency.toString()));
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(() -> {
+                try {
+                    processAgency(rssFeeds, agency.toString(), newsAgencies.getProperty(agency.toString()));
+                } catch (FeedException | IOException e) {
+                    LOGGER.error("", e);
+                }
+            }, 0, 200, TimeUnit.MILLISECONDS);
         }
     }
 
     private static void processAgency(final Table table, final String agencyName, final String agencyURL) throws
             FeedException, IOException {
-        LOGGER.info(agencyName);
+//        LOGGER.info(agencyName);
         SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(agencyURL)));
         feed.getEntries().forEach(entry -> processEntry(table, agencyName, entry));
     }
@@ -144,7 +151,6 @@ public class App {
         Date publishedDate = entry.getPublishedDate();
         String description = entry.getDescription().getValue();
         String author = entry.getAuthor();
-        printFeed(title, publishedDate, description, author);
         try {
             table.insert(agencyName, title, publishedDate, description, author);
         } catch (SQLException e) {

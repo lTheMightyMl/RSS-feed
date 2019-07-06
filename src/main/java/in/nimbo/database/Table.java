@@ -34,11 +34,14 @@ public class Table {
     private final PreparedStatement searchTitleInDate;
     private final PreparedStatement searchDescriptionInDate;
     private final String name;
+    private final Connection searchTitleConnection;
+    private final Connection searchTitleInDateConnection;
+    private final Connection searchDescriptionInDateConnection;
 
     public Table(final String name) throws SQLException {
-        Connection searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        Connection searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        Connection searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              final Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.tables " +
@@ -74,7 +77,7 @@ public class Table {
                     (publishedDate.getTime()), description, author));
         }
     }
-      
+
     public ResultSet searchTitle(final String title) throws SQLException {
         searchTitle.setString(1, title);
         return searchTitle.executeQuery();
@@ -93,7 +96,7 @@ public class Table {
         searchDescriptionInDate.setTimestamp(3, new Timestamp(to.getTime()));
         return searchDescriptionInDate.executeQuery();
     }
-  
+
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
 
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -118,12 +121,25 @@ public class Table {
     }
 
     public ResultSet searchOnContent(String content) throws SQLException {
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
                      "? WHERE description LIKE '%?%'")) {
             preparedStatement.setString(1, name);
             preparedStatement.setString(2, content);
             return preparedStatement.executeQuery();
+        }
+    }
+
+    public void close() {
+        try {
+            searchTitleConnection.close();
+            searchTitleInDateConnection.close();
+            searchDescriptionInDateConnection.close();
+            searchTitle.close();
+            searchTitleInDate.close();
+            searchDescriptionInDate.close();
+        } catch (SQLException e) {
+            LOGGER.error("", e);
         }
     }
 }
