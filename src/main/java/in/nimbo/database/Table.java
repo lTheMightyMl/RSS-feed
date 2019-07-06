@@ -45,12 +45,12 @@ public class Table {
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
                     "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
-            searchOnTitleInSpecificSite = this.searchOnTitleInSpecificSiteConnection.prepareStatement(
-                    "SELECT * FROM ? WHERE agency = ? AND title LIKE '%?%';");
-            searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement("SELECT * " +
-                    "FROM ? WHERE agency = ? AND description LIKE '%?%'");
-            searchOnContent = searchOnContentConnection.prepareStatement("SELECT * FROM ? WHERE description " +
-                    "LIKE '%?%'");
+            searchOnTitleInSpecificSite = searchOnTitleInSpecificSiteConnection.prepareStatement(String.format(
+                    "SELECT * FROM %s WHERE agency = ? AND title ~ ?;", name));
+            searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement(String.format(
+                    "SELECT * FROM %s WHERE agency = ? AND description ~ ?", name));
+            searchOnContent = searchOnContentConnection.prepareStatement(String.format("SELECT * FROM %s WHERE " +
+                    "description ~ ?;", name));
         }
         this.name = name;
     }
@@ -95,37 +95,42 @@ public class Table {
     }
 
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
-        searchOnTitleInSpecificSite.setString(1, name);
-        searchOnTitleInSpecificSite.setString(2, agencyName);
-        searchOnTitleInSpecificSite.setString(3, title);
+        searchOnTitleInSpecificSite.setString(1, agencyName);
+        searchOnTitleInSpecificSite.setString(2, title);
         return searchOnTitleInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContentInSpecificSite(String agencyName, String content) throws SQLException {
-        searchOnContentInSpecificSite.setString(1, name);
-        searchOnContentInSpecificSite.setString(2, agencyName);
-        searchOnContentInSpecificSite.setString(3, content);
+        searchOnContentInSpecificSite.setString(1, agencyName);
+        searchOnContentInSpecificSite.setString(2, content);
         return searchOnContentInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContent(String content) throws SQLException {
-        searchOnContent.setString(1, name);
-        searchOnContent.setString(2, content);
+        searchOnContent.setString(1, content);
         return searchOnContent.executeQuery();
     }
 
     public void close() throws SQLException {
-        searchTitleConnection.close();
-        searchTitleInDateConnection.close();
-        searchDescriptionInDateConnection.close();
-        searchOnTitleInSpecificSiteConnection.close();
-        searchOnContentInSpecificSiteConnection.close();
-        searchOnContent.close();
+        closeConnections();
+        closePreparedStatements();
+    }
+
+    private void closePreparedStatements() throws SQLException {
         searchTitle.close();
         searchTitleInDate.close();
         searchDescriptionInDate.close();
         searchOnTitleInSpecificSite.close();
         searchOnContentInSpecificSite.close();
         searchOnContent.close();
+    }
+
+    private void closeConnections() throws SQLException {
+        searchTitleConnection.close();
+        searchTitleInDateConnection.close();
+        searchDescriptionInDateConnection.close();
+        searchOnTitleInSpecificSiteConnection.close();
+        searchOnContentInSpecificSiteConnection.close();
+        searchOnContentConnection.close();
     }
 }

@@ -206,7 +206,7 @@ public class App {
                 } catch (FeedException | IOException e) {
                     LOGGER.error("", e);
                 }
-            }, 0, 200, TimeUnit.MILLISECONDS);
+            }, 0, 1000, TimeUnit.MILLISECONDS);
         }
     }
 
