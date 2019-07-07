@@ -1,17 +1,12 @@
 package in.nimbo;
 
-import com.rometools.rome.feed.synd.SyndEntry;
-import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
-import com.rometools.rome.io.SyndFeedInput;
-import com.rometools.rome.io.XmlReader;
 import in.nimbo.database.Table;
 import in.nimbo.exception.BadPropertiesFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -42,12 +37,13 @@ public class App {
     private static final String SEARCH_TITLE_AND_AGENCY = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + AGENCY;
     private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" + AGENCY;
     private static final String EXIT = "exit";
-    private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
-    private static final String NEWRSS = "new_rss";
+    private static final String NEWRSS = "new_rss\\s+(.+)";
     private static final String AGENCY_LITERAL = "agency";
+    private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public static void main(String[] args) {
         try {
@@ -76,10 +72,11 @@ public class App {
                 }
             }));
             writeToDB(rssFeeds);
-            String command = SCANNER.nextLine().trim();
+            String command = "";
             while (!command.matches(EXIT)) {
-                decide(rssFeeds, command);
+                System.out.println("ready to take orders ...");
                 command = SCANNER.nextLine().trim();
+                decide(rssFeeds, command);
             }
         } catch (SQLException | IOException | ParseException | FeedException e) {
             LOGGER.error("", e);
@@ -100,7 +97,7 @@ public class App {
         else if (command.matches(SEARCH_DESCRIPTION_AND_AGENCY))
             searchOnContentInSpecificSite(rssFeeds, command);
         else if (command.matches(NEWRSS))
-            addNewRss(command);
+            addNewRss(rssFeeds, command);
     }
 
     private static void searchOnContentInSpecificSite(Table rssFeeds, String command) throws SQLException {
@@ -121,7 +118,7 @@ public class App {
             printResultSet(rssFeeds.searchOnContent(matcher.group(1)));
     }
 
-    private static void addNewRss(String command) throws IOException {
+    private static void addNewRss(final Table rssFeeds, String command) throws IOException {
         String agencyName;
         String rssUrl;
         int index = 7;  // to find name of agency by storing the index of space after prev command
@@ -147,6 +144,8 @@ public class App {
         }
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
+            System.out.println("one rss added");
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
             ExternalData.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
@@ -187,9 +186,9 @@ public class App {
 
     private static void printFeed(final String agency, final String title, final Date publishedDate, final String description, final String
             author) {
+        final String publishedDateString = publishedDate.toString();
         LOGGER.info(agency);
         LOGGER.info(title);
-        final String publishedDateString = publishedDate.toString();
         LOGGER.info(publishedDateString);
         LOGGER.info(description);
         LOGGER.info(author);
@@ -197,36 +196,10 @@ public class App {
 
     private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
         HashMap<String, String> agencies = ExternalData.getAllAgencies();
-        final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            processAgency(rssFeeds, agency.getKey(), agency.getValue());
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(() -> {
-                try {
-                    processAgency(rssFeeds, agency.getKey(), agency.getValue());
-                } catch (FeedException | IOException e) {
-                    LOGGER.error("", e);
-                }
-            }, 0, 1000, TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agency.getKey(), agency.getValue()),
+                    0, 20000, TimeUnit.MILLISECONDS);
         }
     }
-
-    private static void processAgency(final Table table, final String agencyName, final String agencyURL) throws
-            FeedException, IOException {
-//        LOGGER.info(agencyName);
-        SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(agencyURL)));
-        feed.getEntries().forEach(entry -> processEntry(table, agencyName, entry));
-    }
-
-    private static void processEntry(final Table table, final String agencyName, final SyndEntry entry) {
-        String title = entry.getTitle();
-        Date publishedDate = entry.getPublishedDate();
-        String description = entry.getDescription().getValue();
-        String author = entry.getAuthor();
-        try {
-            table.insert(agencyName, title, publishedDate, description, author);
-        } catch (SQLException e) {
-            LOGGER.error("", e);
-        }
-    }
-
 }
