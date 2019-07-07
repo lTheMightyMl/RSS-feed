@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 
+import static in.nimbo.App.LOGGER;
+
 public class ExternalData {
 
     private static String propertiesPath;
@@ -44,7 +46,7 @@ public class ExternalData {
 
         // Checking that the property name is valid
         if (reservedKeysForDB.contains(key)) {
-//            LOGGER.error("")
+            LOGGER.error("invalid property name");
             return;
         }
 
