@@ -25,15 +25,13 @@ public class ExternalData {
     }
 
     private static void checkValid() throws BadPropertiesFile {
-        int[] flag = {0};
 
-        reservedKeysForDB.forEach(s -> {
-            if (properties.containsKey(s)) {
-                ++ flag[0];
-            }
-        });
+        int count = 0 ;
+        for(String reservedKey : reservedKeysForDB)
+            if(properties.containsKey(reservedKey))
+                count++;
 
-        if (flag[0] != reservedKeysForDB.size()) {
+        if (count != reservedKeysForDB.size()) {
             throw new BadPropertiesFile("database properties missing in properties file");
         }
     }
