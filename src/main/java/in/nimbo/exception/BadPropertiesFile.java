@@ -1,6 +1,6 @@
 package in.nimbo.exception;
 
-public class BadPropertiesFile extends NimboException {
+public class BadPropertiesFile extends JimboException {
 
     public BadPropertiesFile(String message) {
         super(message);
