@@ -133,7 +133,7 @@ public class App {
             rssUrl = matcher.group(1);
             agencyName = command.substring(index, matcher.start()).trim();
 
-            if (agencyName.equals("")) {
+            if (agencyName.isEmpty()) {
                 System.out.println("bad command format: agency name required for every agency");
                 return;
             } else {
