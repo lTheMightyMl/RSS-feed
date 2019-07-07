@@ -1,6 +1,6 @@
 package in.nimbo;
 
-import in.nimbo.exeption.BadPropertiesFile;
+import in.nimbo.exception.BadPropertiesFile;
 import org.junit.Test;
 
 import java.io.IOException;
