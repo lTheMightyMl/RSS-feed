@@ -4,30 +4,35 @@ import in.nimbo.ExternalData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.*;
 import java.util.Date;
-import java.util.Objects;
-import java.util.Properties;
 
 public class Table {
     private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
     private static final String URL = ExternalData.getPropertyValue("url");
     private static final String USER = ExternalData.getPropertyValue("user");
     private static final String PASSWORD = ExternalData.getPropertyValue("password");
-    private PreparedStatement searchTitle;
-    private PreparedStatement searchTitleInDate;
-    private PreparedStatement searchDescriptionInDate;
-    private String name;
     private final Connection searchTitleConnection;
     private final Connection searchTitleInDateConnection;
     private final Connection searchDescriptionInDateConnection;
+    private final Connection searchOnTitleInSpecificSiteConnection;
+    private final Connection searchOnContentInSpecificSiteConnection;
+    private final Connection searchOnContentConnection;
+    private final PreparedStatement searchTitle;
+    private final PreparedStatement searchTitleInDate;
+    private final PreparedStatement searchDescriptionInDate;
+    private final PreparedStatement searchOnTitleInSpecificSite;
+    private final PreparedStatement searchOnContentInSpecificSite;
+    private final PreparedStatement searchOnContent;
+    private String name;
 
     public Table(final String name) throws SQLException {
         searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+        searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
              final Statement statement = connection.createStatement()) {
             statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.tables " +
@@ -40,12 +45,12 @@ public class Table {
                     "title ~ ? AND published_date >= ? AND published_date <= ?;", name));
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement(String.format("SELECT * " +
                     "FROM %s WHERE description ~ ? AND published_date >= ? AND published_date <= ?;", name));
-            final PreparedStatement preparedStatement = connection.prepareStatement(String.format("DO $$ BEGIN IF " +
-                    "NOT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name" +
-                    " = '%s') THEN CREATE TABLE %s(agency text, title text, published_date timestamp without time " +
-                    "zone, description text, author text); END IF; END $$;", name, name));
-            // its better to use execute() https://jdbc.postgresql.org/documentation/head/ddl.html
-            preparedStatement.executeUpdate();
+            searchOnTitleInSpecificSite = searchOnTitleInSpecificSiteConnection.prepareStatement(String.format(
+                    "SELECT * FROM %s WHERE agency = ? AND title ~ ?;", name));
+            searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement(String.format(
+                    "SELECT * FROM %s WHERE agency = ? AND description ~ ?", name));
+            searchOnContent = searchOnContentConnection.prepareStatement(String.format("SELECT * FROM %s WHERE " +
+                    "description ~ ?;", name));
         }
         this.name = name;
     }
@@ -90,48 +95,42 @@ public class Table {
     }
 
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title) throws SQLException {
-
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE agency = ? AND title LIKE '%?%';")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, agencyName);
-            preparedStatement.setString(3, title);
-            return preparedStatement.executeQuery();
-        }
+        searchOnTitleInSpecificSite.setString(1, agencyName);
+        searchOnTitleInSpecificSite.setString(2, title);
+        return searchOnTitleInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContentInSpecificSite(String agencyName, String content) throws SQLException {
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE agency = ? AND description LIKE '%?%'")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, agencyName);
-            preparedStatement.setString(3, content);
-            return preparedStatement.executeQuery();
-        }
+        searchOnContentInSpecificSite.setString(1, agencyName);
+        searchOnContentInSpecificSite.setString(2, content);
+        return searchOnContentInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContent(String content) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM " +
-                     "? WHERE description LIKE '%?%'")) {
-            preparedStatement.setString(1, name);
-            preparedStatement.setString(2, content);
-            return preparedStatement.executeQuery();
-        }
+        searchOnContent.setString(1, content);
+        return searchOnContent.executeQuery();
     }
 
-    public void close() {
-        try {
-            searchTitleConnection.close();
-            searchTitleInDateConnection.close();
-            searchDescriptionInDateConnection.close();
-            searchTitle.close();
-            searchTitleInDate.close();
-            searchDescriptionInDate.close();
-        } catch (SQLException e) {
-            LOGGER.error("", e);
-        }
+    public void close() throws SQLException {
+        closeConnections();
+        closePreparedStatements();
+    }
+
+    private void closePreparedStatements() throws SQLException {
+        searchTitle.close();
+        searchTitleInDate.close();
+        searchDescriptionInDate.close();
+        searchOnTitleInSpecificSite.close();
+        searchOnContentInSpecificSite.close();
+        searchOnContent.close();
+    }
+
+    private void closeConnections() throws SQLException {
+        searchTitleConnection.close();
+        searchTitleInDateConnection.close();
+        searchDescriptionInDateConnection.close();
+        searchOnTitleInSpecificSiteConnection.close();
+        searchOnContentInSpecificSiteConnection.close();
+        searchOnContentConnection.close();
     }
 }

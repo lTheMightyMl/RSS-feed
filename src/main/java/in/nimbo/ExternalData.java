@@ -1,6 +1,6 @@
 package in.nimbo;
 
-import in.nimbo.exeption.BadPropertiesFile;
+import in.nimbo.exception.BadPropertiesFile;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -11,7 +11,7 @@ public class ExternalData {
 
     private static String propertiesPath;
     private static Properties properties;
-    private static HashSet<String> reservedKeysForDB = new HashSet<>(Arrays.asList("url", "user", "password"));
+    private static HashSet<String> reservedKeysForDB = new HashSet<>(Arrays.asList("url", "user", "password", "table"));
 
     static void loadProperties(String path) throws BadPropertiesFile, IOException {
         propertiesPath = path;
