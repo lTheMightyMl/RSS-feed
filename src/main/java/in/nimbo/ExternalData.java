@@ -28,8 +28,8 @@ public class ExternalData {
 
         int count = 0 ;
         for(String reservedKey : reservedKeysForDB)
-            if(properties.containsKey("db." + reservedKey))
-                count++;
+            if(properties.containsKey(reservedKey))
+                ++ count;
 
         if (count != reservedKeysForDB.size()) {
             throw new BadPropertiesFile("database properties missing in properties file");
