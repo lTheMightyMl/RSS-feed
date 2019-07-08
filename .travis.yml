@@ -1,5 +1,8 @@
 language: java
 
+jdk:
+  - openjdk8
+
 install: true
 
 services:
@@ -7,3 +10,6 @@ services:
 
 before_script:
   - psql -c 'create database test;' -U postgres
+
+notifications:
+  email: false
