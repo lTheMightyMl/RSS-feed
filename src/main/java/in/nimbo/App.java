@@ -65,7 +65,7 @@ public class App {
         }
         final Table rssFeeds;
         try {
-            rssFeeds = new Table(probs.getPropertyValue("table"));
+            rssFeeds = new Table(probs.getPropertyValue("table"), probs);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     rssFeeds.close();
