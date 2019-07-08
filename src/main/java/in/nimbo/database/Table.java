@@ -12,12 +12,12 @@ public class Table {
     private final String URL = ExternalData.getPropertyValue("url");
     private final String USER = ExternalData.getPropertyValue("user");
     private final String PASSWORD = ExternalData.getPropertyValue("password");
-    private final Connection searchTitleConnection;
-    private final Connection searchTitleInDateConnection;
-    private final Connection searchDescriptionInDateConnection;
-    private final Connection searchOnTitleInSpecificSiteConnection;
-    private final Connection searchOnContentInSpecificSiteConnection;
-    private final Connection searchOnContentConnection;
+    private Connection searchTitleConnection;
+    private Connection searchTitleInDateConnection;
+    private Connection searchDescriptionInDateConnection;
+    private Connection searchOnTitleInSpecificSiteConnection;
+    private Connection searchOnContentInSpecificSiteConnection;
+    private Connection searchOnContentConnection;
     private final PreparedStatement searchTitle;
     private final PreparedStatement searchTitleInDate;
     private final PreparedStatement searchDescriptionInDate;
@@ -93,6 +93,8 @@ public class Table {
     }
 
     public ResultSet searchTitle(String title, int offset, int count) throws SQLException {
+        if (searchTitleConnection.isClosed())
+            searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchTitle.setString(1, name);
         searchTitle.setString(2, title);
         searchTitle.setInt(3, offset);
@@ -101,6 +103,8 @@ public class Table {
     }
 
     public ResultSet searchTitleInDate(final String title, final Date from, final Date to, int offset, int count) throws SQLException {
+        if (searchTitleInDateConnection.isClosed())
+            searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchTitleInDate.setString(1, name);
         searchTitleInDate.setString(2, title);
         searchTitleInDate.setTimestamp(3, new Timestamp(from.getTime()));
@@ -111,6 +115,8 @@ public class Table {
     }
 
     public ResultSet searchDescriptionInDate(String description, Date from, Date to, int offset, int count) throws SQLException {
+        if (searchTitleInDateConnection.isClosed())
+            searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchDescriptionInDate.setString(1, name);
         searchDescriptionInDate.setString(2, description);
         searchDescriptionInDate.setTimestamp(3, new Timestamp(from.getTime()));
@@ -121,6 +127,8 @@ public class Table {
     }
 
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title, int offset, int count) throws SQLException {
+        if (searchOnTitleInSpecificSiteConnection.isClosed())
+            searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchOnTitleInSpecificSite.setString(1, name);
         searchOnTitleInSpecificSite.setString(2, agencyName);
         searchOnTitleInSpecificSite.setString(3, title);
@@ -130,6 +138,8 @@ public class Table {
     }
 
     public ResultSet searchOnContentInSpecificSite(String agencyName, String content, int offset, int count) throws SQLException {
+        if (searchOnContentInSpecificSiteConnection.isClosed())
+            searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchOnContentInSpecificSite.setString(1, name);
         searchOnContentInSpecificSite.setString(2, agencyName);
         searchOnContentInSpecificSite.setString(3, content);
@@ -139,6 +149,8 @@ public class Table {
     }
 
     public ResultSet searchOnContent(String content, int offset, int count) throws SQLException {
+        if (searchOnContentConnection.isClosed())
+            searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchOnContent.setString(1, name);
         searchOnContent.setString(2, content);
         searchOnContent.setInt(3, offset);
