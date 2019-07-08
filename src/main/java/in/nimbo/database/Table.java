@@ -34,11 +34,15 @@ public class Table {
         searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM information_schema.tables " +
-                    "WHERE table_schema = 'public' AND table_name = '%s') THEN CREATE TABLE %s(agency text, " +
-                    "title text, published_date timestamp without time zone, description text, author text); " +
-                    "END IF; END $$;", name, name));
+             PreparedStatement prestatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
+                     "(SELECT 1 FROM information_schema.tables " +
+                     "WHERE table_schema = 'public' AND table_name = '?') THEN CREATE TABLE ?(agency text, " +
+                     "title text, published_date timestamp without time zone, description text, author text); " +
+                     "END IF; END $$;")
+             ) {
+            prestatement.setString(1, name);
+            prestatement.setString(2, name);
+            prestatement.executeUpdate();
             searchTitle = searchTitleConnection.prepareStatement("SELECT * FROM ? WHERE title ~ ? OFFSET ? ROWS " +
                     "FETCH NEXT ? ROWS ONLY;");
             searchTitleInDate = searchTitleInDateConnection.prepareStatement("SELECT * FROM ? WHERE " +
@@ -69,13 +73,22 @@ public class Table {
             description = " ";
         if (author.isEmpty())
             author = " ";
-        try (final Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-             final Statement statement = connection.createStatement()) {
-            statement.executeUpdate(String.format("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM %s WHERE agency = $one$%s$" +
-                    "one$ AND title = $two$%s$two$) THEN INSERT INTO %s(agency, title, published_date, description, " +
-                    "author) VALUES ($three$%s$three$, $four$%s$four$, TIMESTAMP (6) $five$%s$five$, $six$%s$six$, $" +
-                    "seven$%s$seven$); END IF; END $$;", name, agencyName, title, name, agencyName, title, new Timestamp
-                    (publishedDate.getTime()), description, author));
+        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement prepstatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
+                     "(SELECT 1 FROM ? WHERE agency = $one$?$" +
+                     "one$ AND title = $two$?$two$) THEN INSERT INTO ?(agency, title, published_date, description, " +
+                     "author) VALUES ($three$?$three$, $four$?$four$, TIMESTAMP (6) $five$?$five$, $six$?$six$, $" +
+                     "seven$?$seven$); END IF; END $$;")) {
+            prepstatement.setString(1, name);
+            prepstatement.setString(2, agencyName);
+            prepstatement.setString(3, title);
+            prepstatement.setString(4, name);
+            prepstatement.setString(5, agencyName);
+            prepstatement.setString(6, title);
+            prepstatement.setTimestamp(7, new Timestamp(publishedDate.getTime()));
+            prepstatement.setString(8, description);
+            prepstatement.setString(9, author);
+            prepstatement.executeUpdate();
         }
     }
 
