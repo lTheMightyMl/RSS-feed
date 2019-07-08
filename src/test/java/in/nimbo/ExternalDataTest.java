@@ -75,9 +75,9 @@ public class ExternalDataTest {
 
     @Test
     public void addProperty() throws BadPropertiesFile, IOException {
-        ExternalData probs = new ExternalData("src/test/resources/badExternalDatas.properties");
+        ExternalData probs = new ExternalData("src/test/resources/toTestAddProperties.properties");
         probs.addProperty("test", "added");
-        probs = new ExternalData("src/test/resources/badExternalDatas.properties");
+        probs = new ExternalData("src/test/resources/toTestAddProperties.properties");
         assertEquals(probs.getPropertyValue("test"), "added");
     }
 
