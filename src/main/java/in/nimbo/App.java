@@ -47,8 +47,9 @@ public class App {
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public static void main(String[] args) {
+        ExternalData probs = null;
         try {
-            ExternalData.loadProperties(args[0]);
+            probs = new ExternalData(args[0]);
         } catch (ArrayIndexOutOfBoundsException e) {
             System.out.println("Please pass address of properties file as argument");
             LOGGER.error("address of properties missing", e);
@@ -64,7 +65,7 @@ public class App {
         }
         final Table rssFeeds;
         try {
-            rssFeeds = new Table(ExternalData.getPropertyValue("table"));
+            rssFeeds = new Table(probs.getPropertyValue("table"));
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     rssFeeds.close();
@@ -72,19 +73,19 @@ public class App {
                     LOGGER.error("", e);
                 }
             }));
-            writeToDB(rssFeeds);
+            writeToDB(rssFeeds, probs);
             String command = "";
             while (!command.matches(EXIT)) {
                 System.out.println("ready to take orders ...");
                 command = SCANNER.nextLine().trim();
-                decide(rssFeeds, command);
+                decide(rssFeeds, command, probs);
             }
         } catch (SQLException | IOException | ParseException | FeedException e) {
             LOGGER.error("", e);
         }
     }
 
-    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException, IOException {
+    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException, IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
@@ -98,7 +99,7 @@ public class App {
         else if (command.matches(SEARCH_DESCRIPTION_AND_AGENCY))
             searchOnContentInSpecificSite(rssFeeds, command);
         else if (command.matches(NEWRSS))
-            addNewRss(rssFeeds, command);
+            addNewRss(rssFeeds, command, probs);
     }
 
     private static void searchOnContentInSpecificSite(Table rssFeeds, String command) throws SQLException {
@@ -163,7 +164,7 @@ public class App {
         }
     }
 
-    private static void addNewRss(final Table rssFeeds, String command) throws IOException {
+    private static void addNewRss(final Table rssFeeds, String command, ExternalData probs) throws IOException {
         String agencyName;
         String rssUrl;
         int index = 7;  // to find name of agency by storing the index of space after prev command
@@ -191,7 +192,7 @@ public class App {
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             System.out.println("one rss added");
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
-            ExternalData.addProperty(agenc.getKey(), agenc.getValue());
+            probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
 
@@ -279,8 +280,8 @@ public class App {
         LOGGER.info(author);
     }
 
-    private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
-        HashMap<String, String> agencies = ExternalData.getAllAgencies();
+    private static void writeToDB(final Table rssFeeds, ExternalData probs) throws IOException, FeedException {
+        HashMap<String, String> agencies = probs.getAllAgencies();
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agency.getKey(), agency.getValue()),

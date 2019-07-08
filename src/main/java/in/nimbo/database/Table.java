@@ -9,9 +9,9 @@ import java.util.Date;
 
 public class Table {
     private final Logger LOGGER = LoggerFactory.getLogger(Table.class);
-    private final String URL = ExternalData.getPropertyValue("url");
-    private final String USER = ExternalData.getPropertyValue("user");
-    private final String PASSWORD = ExternalData.getPropertyValue("password");
+    private String URL;
+    private String USER;
+    private String PASSWORD;
     private Connection searchTitleConnection;
     private Connection searchTitleInDateConnection;
     private Connection searchDescriptionInDateConnection;
@@ -26,7 +26,10 @@ public class Table {
     private final PreparedStatement searchOnContent;
     private String name;
 
-    public Table(final String name) throws SQLException {
+    public Table(final String name, ExternalData probs) throws SQLException {
+        URL = probs.getPropertyValue("url");
+        USER = probs.getPropertyValue("user");
+        PASSWORD = probs.getPropertyValue("password");
         searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
         searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
