@@ -4,7 +4,7 @@ import in.nimbo.exception.BadPropertiesFile;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Properties;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -59,7 +59,7 @@ public class ExternalDataTest {
         } catch (IOException | BadPropertiesFile e) {
             fail();
         }
-        assertEquals(probs.getPropertyValue("user"), "var");
+        assertEquals(probs.getPropertyValue("user"), "var2");
     }
 
     @Test
@@ -70,14 +70,30 @@ public class ExternalDataTest {
         } catch (IOException | BadPropertiesFile e) {
             fail();
         }
-        assertEquals(probs.getPropertyValue("user"), "var");
+        assertEquals(probs.getPropertyValue("key3 test"), "value3.1 value3.2");
     }
 
     @Test
-    public void addProperty() {
+    public void addProperty() throws BadPropertiesFile, IOException {
+        ExternalData probs = new ExternalData("src/test/resources/badExternalDatas.properties");
+        probs.addProperty("test", "added");
+        probs = new ExternalData("src/test/resources/badExternalDatas.properties");
+        assertEquals(probs.getPropertyValue("test"), "added");
     }
 
     @Test
-    public void getAllAgencies() {
+    public void getAllAgencies() throws BadPropertiesFile, IOException {
+        ExternalData probs = new ExternalData("src/test/resources/externalDatas.properties");
+        Set<String> keys = probs.getAllAgencies().keySet();
+        Set<String> actualKeys = new HashSet<>();
+        actualKeys.add("key1");
+        actualKeys.add("key3 test");
+        actualKeys.add("key4");
+        for (String s : keys) {
+            if (! actualKeys.contains(s)) {
+                fail();
+            }
+        }
+
     }
 }
