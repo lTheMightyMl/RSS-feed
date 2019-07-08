@@ -11,11 +11,11 @@ import static in.nimbo.App.LOGGER;
 
 public class ExternalData {
 
-    private static String propertiesPath;
-    private static Properties properties;
-    private static HashSet<String> reservedKeysForDB = new HashSet<>(Arrays.asList("db.url", "db.user", "db.password", "db.table"));
+    private String propertiesPath;
+    private Properties properties;
+    private HashSet<String> reservedKeysForDB = new HashSet<>(Arrays.asList("db.url", "db.user", "db.password", "db.table"));
 
-    static void loadProperties(String path) throws BadPropertiesFile, IOException {
+    ExternalData(String path) throws BadPropertiesFile, IOException {
         propertiesPath = path;
 
         properties = new Properties();
@@ -24,7 +24,7 @@ public class ExternalData {
         checkValid();
     }
 
-    private static void checkValid() throws BadPropertiesFile {
+    private void checkValid() throws BadPropertiesFile {
 
         int count = 0 ;
         for(String reservedKey : reservedKeysForDB)
@@ -36,11 +36,11 @@ public class ExternalData {
         }
     }
 
-    public static String getPropertyValue(String key) {
+    public String getPropertyValue(String key) {
         return properties.getProperty("db." + key) == null ? properties.getProperty("agencies." + key) : properties.getProperty("db." + key);
     }
 
-    public static void addProperty(String key, String value) throws IOException {
+    public void addProperty(String key, String value) throws IOException {
 
         // Checking that the property name is valid
         if (reservedKeysForDB.contains("db." + key)) {
@@ -55,7 +55,7 @@ public class ExternalData {
         properties.store(new FileOutputStream(propertiesPath), null);
     }
 
-    static HashMap<String, String> getAllAgencies() {
+    HashMap<String, String> getAllAgencies() {
         HashMap<String, String> agencies = new HashMap<>();
         String key;
         for (Map.Entry<Object, Object> property: properties.entrySet()) {
