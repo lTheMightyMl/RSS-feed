@@ -191,7 +191,7 @@ public class App {
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             System.out.println("one rss added");
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
@@ -282,9 +282,13 @@ public class App {
 
     private static void writeToDB(final Table rssFeeds, ExternalData probs) throws IOException, FeedException {
         HashMap<String, String> agencies = probs.getAllAgencies();
-        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
+        int threadsOfPool = agencies.size();
+        if (threadsOfPool > 10) {
+            threadsOfPool = 10;
+        }
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agency.getKey(), agency.getValue()),
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(), agency.getValue()),
                     0, 20000, TimeUnit.MILLISECONDS);
         }
     }
