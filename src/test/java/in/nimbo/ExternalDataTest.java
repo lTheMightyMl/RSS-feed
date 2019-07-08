@@ -4,6 +4,7 @@ import in.nimbo.exception.BadPropertiesFile;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
 
@@ -15,7 +16,7 @@ public class ExternalDataTest {
     @Test
     public void loadProperties() {
         try {
-            ExternalData.loadProperties("src/test/resources/externalDatas.properties");
+            ExternalData probs = new ExternalData("src/test/resources/externalDatas.properties");
         } catch (BadPropertiesFile | IOException badPropertiesFile) {
             fail();
         }
@@ -29,7 +30,7 @@ public class ExternalDataTest {
     @Test
     public void badLoadProperties() {
         try {
-            ExternalData.loadProperties("src/test/resources/badExternalDatas.properties");
+            ExternalData probs = new ExternalData("src/test/resources/badExternalDatas.properties");
         } catch (BadPropertiesFile | IOException badPropertiesFile) {
             assertTrue(true);
             return;
@@ -40,9 +41,10 @@ public class ExternalDataTest {
     @Test
     public void badPathLoadProperties() {
         try {
-            ExternalData.loadProperties("/some/wrong/address/data.properties");
+            ExternalData probs = new ExternalData("/some/wrong/address/data.properties");
         } catch (IOException e) {
             assertTrue(true);
+            return;
         } catch (BadPropertiesFile badPropertiesFile) {
             fail();
         }
@@ -51,22 +53,24 @@ public class ExternalDataTest {
 
     @Test
     public void getPropertyValueTest1() {
+        ExternalData probs = null;
         try {
-            ExternalData.loadProperties("src/test/resources/externalDatas.properties");
+            probs = new ExternalData("src/test/resources/externalDatas.properties");
         } catch (IOException | BadPropertiesFile e) {
             fail();
         }
-        assertEquals(ExternalData.getPropertyValue("user"), "var");
+        assertEquals(probs.getPropertyValue("user"), "var");
     }
 
     @Test
     public void getPropertyValueTest2() {
+        ExternalData probs = null;
         try {
-            ExternalData.loadProperties("src/test/resources/externalDatas.properties");
+            probs = new ExternalData("src/test/resources/externalDatas.properties");
         } catch (IOException | BadPropertiesFile e) {
             fail();
         }
-        assertEquals(ExternalData.getPropertyValue("user"), "var");
+        assertEquals(probs.getPropertyValue("user"), "var");
     }
 
     @Test
