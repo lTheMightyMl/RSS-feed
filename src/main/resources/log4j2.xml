@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration dest="err" status="fatal">
+    <Appenders>
+        <RollingFile append="true" bufferedIO="true">
+        </RollingFile>
+        <Console name="CLI" follow="true" direct="false" fileName="">
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Root>
+            <AppenderRef ref="CLI"/>
+        </Root>
+        <Logger name="in.nimbo.App" level="all">
+            <AppenderRef ref="serr"/>
+        </Logger>
+        <Logger name="in.nimbo.ProcessAgency" level="error">
+        </Logger>
+    </Loggers>
+</Configuration>

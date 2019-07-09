@@ -24,7 +24,10 @@ public class Table {
     private Connection searchOnContentConnection;
     private String name;
 
-    public Table(final String name, ExternalData probs) throws SQLException {
+    public Table(String name, ExternalData probs) throws SQLException {
+        if (name == null || name.isEmpty()) {
+            name = "default";
+        }
         url = probs.getPropertyValue("url");
         user = probs.getPropertyValue("user");
         password = probs.getPropertyValue("password");
@@ -35,14 +38,11 @@ public class Table {
         searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentConnection = DriverManager.getConnection(url, user, password);
         try (Connection connection = DriverManager.getConnection(url, user, password);
-             PreparedStatement prestatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
-                     "(SELECT 1 FROM information_schema.tables " +
-                     "WHERE table_schema = 'public' AND table_name = '?') THEN CREATE TABLE ?(agency text, " +
-                     "title text, published_date timestamp without time zone, description text, author text); " +
-                     "END IF; END $$;")
+             PreparedStatement prestatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS(SELECT 1 " +
+                     "FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '" + name + "') " +
+                     "THEN CREATE TABLE " + name + "(agency text, title text, published_date timestamp (6) without " +
+                     "time zone, description text, author text); END IF; END $$;")
         ) {
-            prestatement.setString(1, name);
-            prestatement.setString(2, name);
             prestatement.executeUpdate();
             searchTitle = searchTitleConnection.prepareStatement("SELECT * FROM ? WHERE title ~ ? OFFSET ? ROWS " +
                     "FETCH NEXT ? ROWS ONLY;");
@@ -66,29 +66,23 @@ public class Table {
 
     public void insert(String agencyName, String title, Date publishedDate, String description, String author) throws
             SQLException {
-        if (agencyName.isEmpty())
+        if (agencyName == null || agencyName.isEmpty())
             agencyName = " ";
-        if (title.isEmpty())
+        if (title == null || title.isEmpty())
             title = " ";
-        if (description.isEmpty())
+        if (publishedDate == null)
+            publishedDate = new Date(0);
+        if (description == null || description.isEmpty())
             description = " ";
-        if (author.isEmpty())
+        if (author == null || author.isEmpty())
             author = " ";
         try (Connection connection = DriverManager.getConnection(url, user, password);
-             PreparedStatement prepstatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
-                     "(SELECT 1 FROM ? WHERE agency = $one$?$" +
-                     "one$ AND title = $two$?$two$) THEN INSERT INTO ?(agency, title, published_date, description, " +
-                     "author) VALUES ($three$?$three$, $four$?$four$, TIMESTAMP (6) $five$?$five$, $six$?$six$, $" +
-                     "seven$?$seven$); END IF; END $$;")) {
-            prepstatement.setString(1, name);
-            prepstatement.setString(2, agencyName);
-            prepstatement.setString(3, title);
-            prepstatement.setString(4, name);
-            prepstatement.setString(5, agencyName);
-            prepstatement.setString(6, title);
-            prepstatement.setTimestamp(7, new Timestamp(publishedDate.getTime()));
-            prepstatement.setString(8, description);
-            prepstatement.setString(9, author);
+             PreparedStatement prepstatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS(SELECT 1 " +
+                     "FROM " + name + " WHERE agency = $one$" + agencyName + "$one$ AND title = $two$" + title +
+                     "$two$) THEN INSERT INTO " + name + "(agency, title, published_date, description, author) " +
+                     "VALUES ($three$" + agencyName + "$three$, $four$" + title + "$four$, TIMESTAMP (6) WITH TIME " +
+                     "ZONE $five$" + new Timestamp(publishedDate.getTime()) + "$five$, $six$" + description +
+                     "$six$, $seven$" + author + "$seven$); END IF; END $$;")) {
             prepstatement.executeUpdate();
         }
     }

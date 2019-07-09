@@ -27,13 +27,18 @@ public class App {
     private static final String FROM_DATE_TO_DATE = DATE + "\\s+" + DATE;
     private static final String TITLE_LITERAL = "title";
     private static final String SEARCH_TITLE = TITLE_LITERAL + "\\s+" + TITLE;
+    private static final Pattern SEARCH_TITLE_PATTERN = Pattern.compile(SEARCH_TITLE);
     private static final String SEARCH_TITLE_AND_DATE = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + FROM_DATE_TO_DATE;
+    private static final Pattern SEARCH_TITLE_AND_DATE_PATTERN = Pattern.compile(SEARCH_TITLE_AND_DATE);
     private static final String DESCRIPTION_LITERAL = "description";
     private static final String SEARCH_DESCRIPTION_AND_DATE = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" +
             FROM_DATE_TO_DATE;
+    private static final Pattern SEARCH_DESCRIPTION_AND_DATE_PATTERN = Pattern.compile(SEARCH_DESCRIPTION_AND_DATE);
     private static final String SEARCH_DESCRIPTION = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION;
+    private static final Pattern SEARCH_DESCRIPTION_PATTERN = Pattern.compile(SEARCH_DESCRIPTION);
     private static final String AGENCY = TEXT;
     private static final String SEARCH_TITLE_AND_AGENCY = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + AGENCY;
+    private static final Pattern SEARCH_TITLE_AND_AGENCY_PATTERN = Pattern.compile(SEARCH_TITLE_AND_AGENCY);
     private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" + AGENCY;
     private static final String EXIT = "exit";
     private static final Logger LOGGER = LogManager.getLogger(App.class);
@@ -45,6 +50,9 @@ public class App {
     private static final int RESULT_COUNT = 10;
     private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type \'Y\'";
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
+                    + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
 
     public static void main(String[] args) {
         ExternalData probs = null;
@@ -124,7 +132,7 @@ public class App {
     }
 
     private static void searchOnTitleInSpecificSite(Table rssFeeds, String command) throws SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_AGENCY).matcher(command);
+        Matcher matcher = SEARCH_TITLE_AND_AGENCY_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -145,7 +153,7 @@ public class App {
     }
 
     private static void searchOnContent(Table rssFeeds, String command) throws SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION).matcher(command);
+        Matcher matcher = SEARCH_DESCRIPTION_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -170,11 +178,7 @@ public class App {
         int index = 7;  // to find name of agency by storing the index of space after prev command
         final HashMap<String, String> agencies = new HashMap<>();
 
-        final Pattern urlPattern = Pattern.compile(
-                "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
-                        + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
-
-        Matcher matcher = urlPattern.matcher(command);
+        Matcher matcher = URL_PATTERN.matcher(command);
         while (matcher.find()) {
             rssUrl = matcher.group(1);
             agencyName = command.substring(index, matcher.start()).trim();
@@ -198,7 +202,7 @@ public class App {
 
     private static void searchDescriptionInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION_AND_DATE).matcher(command);
+        Matcher matcher = SEARCH_DESCRIPTION_AND_DATE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -226,7 +230,7 @@ public class App {
 
     private static void searchTitleInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_DATE).matcher(command);
+        Matcher matcher = SEARCH_TITLE_AND_DATE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -251,7 +255,7 @@ public class App {
     }
 
     private static void searchTitle(final Table rssFeeds, final String command) throws SQLException {
-        final Matcher matcher = Pattern.compile(SEARCH_TITLE).matcher(command);
+        final Matcher matcher = SEARCH_TITLE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
