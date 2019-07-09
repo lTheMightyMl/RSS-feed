@@ -39,7 +39,8 @@ public class App {
     private static final String AGENCY = TEXT;
     private static final String SEARCH_TITLE_AND_AGENCY = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + AGENCY;
     private static final Pattern SEARCH_TITLE_AND_AGENCY_PATTERN = Pattern.compile(SEARCH_TITLE_AND_AGENCY);
-    private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" + AGENCY;
+    private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" +
+            AGENCY;
     private static final String EXIT = "exit";
     private static final Logger LOGGER = LogManager.getLogger(App.class);
     private static final Scanner SCANNER = new Scanner(System.in);
@@ -48,10 +49,10 @@ public class App {
     private static final String NEWRSS = "new_rss\\s+(.+)";
     private static final String AGENCY_LITERAL = "agency";
     private static final int RESULT_COUNT = 10;
-    private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type \'Y\'";
+    private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type " +
+            "\'Y\'";
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
-    private static final Pattern URL_PATTERN = Pattern.compile(
-            "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
+    private static final Pattern URL_PATTERN = Pattern.compile("((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
                     + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
 
     public static void main(String[] args) {
@@ -93,7 +94,8 @@ public class App {
         }
     }
 
-    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException, IOException {
+    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException,
+            IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
@@ -195,7 +197,8 @@ public class App {
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             LOGGER.info("one rss added");
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(),
+                    agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
@@ -224,7 +227,8 @@ public class App {
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {
         while (resultSet.next())
-            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.getTimestamp(PUBLISHED_DATE).getTime()),
+            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.
+                            getTimestamp(PUBLISHED_DATE).getTime()),
                     resultSet.getString(DESCRIPTION_LITERAL), resultSet.getString(AUTHOR));
     }
 
@@ -274,7 +278,8 @@ public class App {
         }
     }
 
-    private static void printFeed(final String agency, final String title, final Date publishedDate, final String description, final String
+    private static void printFeed(final String agency, final String title, final Date publishedDate, final String
+            description, final String
             author) {
         final String publishedDateString = publishedDate.toString();
         LOGGER.info(agency);
@@ -293,8 +298,8 @@ public class App {
         }
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(), agency.getValue()),
-                    0, 20000, TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(),
+                            agency.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
         }
     }
 
