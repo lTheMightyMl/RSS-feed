@@ -1,10 +1,16 @@
 package in.nimbo.database;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 public class TableTest {
+
+    @Before
+    public void init() {
+
+    }
 
     @Test
     public void insert() {
