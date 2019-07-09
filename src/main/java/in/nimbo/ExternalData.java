@@ -61,7 +61,7 @@ public class ExternalData {
         for (Map.Entry<Object, Object> property: properties.entrySet()) {
             key = ((String) property.getKey());
             if (! reservedKeysForDB.contains(key)) {
-                key = key.substring(key.indexOf('.') + 1);
+                key = key.substring(9);
                 agencies.put(key, (String) property.getValue());
             }
         }
