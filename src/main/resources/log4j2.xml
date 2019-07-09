@@ -1,19 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration dest="err" status="fatal">
     <Appenders>
-        <RollingFile append="true" bufferedIO="true">
+        <RollingFile name="ProcessAgency" fileName="target/logs/rolling/processAgency.log" filePattern="target/logs/rolling2/processAgency-%d{MM-dd-yy-HH}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>%d %p %C{1.} [%t] %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="2" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
         </RollingFile>
-        <Console name="CLI" follow="true" direct="false" fileName="">
+        <RollingFile name="ExternalData" fileName="target/logs/rolling/externalData.log" filePattern="target/logs/rolling2/externalData-%d{MM-dd-yy-HH-mm-ss}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>%d %p %C{1.} [%t] %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="2" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="5"/>
+        </RollingFile>
+        <Console name="CLI" follow="true" direct="false">
         </Console>
     </Appenders>
     <Loggers>
         <Root>
             <AppenderRef ref="CLI"/>
         </Root>
-        <Logger name="in.nimbo.App" level="all">
-            <AppenderRef ref="serr"/>
+        <Logger name="in.nimbo.App" level="all" additivity="true"/>
+        <Logger name="in.nimbo.ProcessAgency" level="all" additivity="false">
+            <AppenderRef ref="ProcessAgency"/>
         </Logger>
-        <Logger name="in.nimbo.ProcessAgency" level="error">
+        <Logger name="in.nimbo.ExternalData" level="all" additivity="false">
+            <AppenderRef ref="ExternalData"/>
         </Logger>
     </Loggers>
 </Configuration>
