@@ -15,7 +15,7 @@ public class ExternalData {
     private Properties properties;
     private HashSet<String> reservedKeysForDB = new HashSet<>(Arrays.asList("db.url", "db.user", "db.password", "db.table"));
 
-    ExternalData(String path) throws BadPropertiesFile, IOException {
+    public ExternalData(String path) throws BadPropertiesFile, IOException {
         propertiesPath = path;
 
         properties = new Properties();
