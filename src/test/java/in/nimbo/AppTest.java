@@ -7,8 +7,7 @@ import org.junit.Test;
 /**
  * Unit test for RSS-feed app.
  */
-public class AppTest 
-{
+public class AppTest {
     /**
      * Rigorous Test :-)
      */
@@ -17,7 +16,9 @@ public class AppTest
         assertTrue( true );
     }
 
+    @Test
+    public void addNewRss() {
 
-
+    }
 
 }
