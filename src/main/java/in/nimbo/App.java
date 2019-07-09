@@ -1,6 +1,5 @@
 package in.nimbo;
 
-import com.rometools.rome.io.FeedException;
 import in.nimbo.database.Table;
 import in.nimbo.exception.BadPropertiesFile;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +43,7 @@ public class App {
     private static final String NEWRSS = "new_rss\\s+(.+)";
     private static final String AGENCY_LITERAL = "agency";
     private static final int RESULT_COUNT = 10;
+    private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type \'Y\'";
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public static void main(String[] args) {
@@ -51,15 +51,15 @@ public class App {
         try {
             probs = new ExternalData(args[0]);
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("Please pass address of properties file as argument");
+            LOGGER.info("Please pass address of properties file as argument");
             LOGGER.error("address of properties missing", e);
             System.exit(0);
         } catch (BadPropertiesFile badPropertiesFile) {
-            System.out.println("Bad properties file");
+            LOGGER.info("Bad properties file");
             LOGGER.error("database properties missing in properties file", badPropertiesFile);
             System.exit(0);
         } catch (IOException e) {
-            System.out.println("Wrong file path");
+            LOGGER.info("Wrong file path");
             LOGGER.error("given path for properties files is not exist");
             System.exit(0);
         }
@@ -76,11 +76,11 @@ public class App {
             writeToDB(rssFeeds, probs);
             String command = "";
             while (!command.matches(EXIT)) {
-                System.out.println("ready to take orders ...");
+                LOGGER.info("ready to take orders ...");
                 command = SCANNER.nextLine().trim();
                 decide(rssFeeds, command, probs);
             }
-        } catch (SQLException | IOException | ParseException | FeedException e) {
+        } catch (SQLException | IOException | ParseException e) {
             LOGGER.error("", e);
         }
     }
@@ -114,8 +114,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -135,8 +135,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -155,8 +155,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -180,7 +180,7 @@ public class App {
             agencyName = command.substring(index, matcher.start()).trim();
 
             if (agencyName.isEmpty()) {
-                System.out.println("bad command format: agency name required for every agency");
+                LOGGER.info("bad command format: agency name required for every agency");
                 return;
             } else {
                 agencies.put(agencyName, rssUrl);
@@ -190,7 +190,7 @@ public class App {
         }
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
-            System.out.println("one rss added");
+            LOGGER.info("one rss added");
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
@@ -209,8 +209,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -237,8 +237,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -261,8 +261,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -281,7 +281,7 @@ public class App {
         LOGGER.info("");
     }
 
-    private static void writeToDB(final Table rssFeeds, ExternalData probs) throws IOException, FeedException {
+    private static void writeToDB(final Table rssFeeds, ExternalData probs) {
         HashMap<String, String> agencies = probs.getAllAgencies();
         int threadsOfPool = agencies.size();
         if (threadsOfPool > 10) {

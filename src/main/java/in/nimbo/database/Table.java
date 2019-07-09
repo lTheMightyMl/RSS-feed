@@ -6,40 +6,41 @@ import java.sql.*;
 import java.util.Date;
 
 public class Table {
-    private String URL;
-    private String USER;
-    private String PASSWORD;
-    private Connection searchTitleConnection;
-    private Connection searchTitleInDateConnection;
-    private Connection searchDescriptionInDateConnection;
-    private Connection searchOnTitleInSpecificSiteConnection;
-    private Connection searchOnContentInSpecificSiteConnection;
-    private Connection searchOnContentConnection;
+    private static final String OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY = "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;";
     private final PreparedStatement searchTitle;
     private final PreparedStatement searchTitleInDate;
     private final PreparedStatement searchDescriptionInDate;
     private final PreparedStatement searchOnTitleInSpecificSite;
     private final PreparedStatement searchOnContentInSpecificSite;
     private final PreparedStatement searchOnContent;
+    private String url;
+    private String user;
+    private String password;
+    private Connection searchTitleConnection;
+    private Connection searchTitleInDateConnection;
+    private Connection searchDescriptionInDateConnection;
+    private Connection searchOnTitleInSpecificSiteConnection;
+    private Connection searchOnContentInSpecificSiteConnection;
+    private Connection searchOnContentConnection;
     private String name;
 
     public Table(final String name, ExternalData probs) throws SQLException {
-        URL = probs.getPropertyValue("url");
-        USER = probs.getPropertyValue("user");
-        PASSWORD = probs.getPropertyValue("password");
-        searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        searchDescriptionInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+        url = probs.getPropertyValue("url");
+        user = probs.getPropertyValue("user");
+        password = probs.getPropertyValue("password");
+        searchTitleConnection = DriverManager.getConnection(url, user, password);
+        searchTitleInDateConnection = DriverManager.getConnection(url, user, password);
+        searchDescriptionInDateConnection = DriverManager.getConnection(url, user, password);
+        searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
+        searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
+        searchOnContentConnection = DriverManager.getConnection(url, user, password);
+        try (Connection connection = DriverManager.getConnection(url, user, password);
              PreparedStatement prestatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
                      "(SELECT 1 FROM information_schema.tables " +
                      "WHERE table_schema = 'public' AND table_name = '?') THEN CREATE TABLE ?(agency text, " +
                      "title text, published_date timestamp without time zone, description text, author text); " +
                      "END IF; END $$;")
-             ) {
+        ) {
             prestatement.setString(1, name);
             prestatement.setString(2, name);
             prestatement.executeUpdate();
@@ -47,16 +48,16 @@ public class Table {
                     "FETCH NEXT ? ROWS ONLY;");
             searchTitleInDate = searchTitleInDateConnection.prepareStatement("SELECT * FROM ? WHERE " +
                     "title ~ ? AND published_date >= ? AND published_date <= ? " +
-                    "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
+                    OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
             searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement("SELECT * " +
                     "FROM ? WHERE description ~ ? AND published_date >= ? AND published_date <= ? " +
-                    "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
+                    OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
             searchOnTitleInSpecificSite = searchOnTitleInSpecificSiteConnection.prepareStatement(
                     "SELECT * FROM ? WHERE agency = ? AND title ~ ? " +
-                            "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
+                            OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
             searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement(
                     "SELECT * FROM ? WHERE agency = ? AND description ~ ? " +
-                            "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
+                            OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
             searchOnContent = searchOnContentConnection.prepareStatement("SELECT * FROM ? WHERE " +
                     "description ~ ? OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
         }
@@ -73,7 +74,7 @@ public class Table {
             description = " ";
         if (author.isEmpty())
             author = " ";
-        try (Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+        try (Connection connection = DriverManager.getConnection(url, user, password);
              PreparedStatement prepstatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS" +
                      "(SELECT 1 FROM ? WHERE agency = $one$?$" +
                      "one$ AND title = $two$?$two$) THEN INSERT INTO ?(agency, title, published_date, description, " +
@@ -94,7 +95,7 @@ public class Table {
 
     public ResultSet searchTitle(String title, int offset, int count) throws SQLException {
         if (searchTitleConnection.isClosed())
-            searchTitleConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchTitleConnection = DriverManager.getConnection(url, user, password);
         searchTitle.setString(1, name);
         searchTitle.setString(2, title);
         searchTitle.setInt(3, offset);
@@ -104,7 +105,7 @@ public class Table {
 
     public ResultSet searchTitleInDate(final String title, final Date from, final Date to, int offset, int count) throws SQLException {
         if (searchTitleInDateConnection.isClosed())
-            searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchTitleInDateConnection = DriverManager.getConnection(url, user, password);
         searchTitleInDate.setString(1, name);
         searchTitleInDate.setString(2, title);
         searchTitleInDate.setTimestamp(3, new Timestamp(from.getTime()));
@@ -116,7 +117,7 @@ public class Table {
 
     public ResultSet searchDescriptionInDate(String description, Date from, Date to, int offset, int count) throws SQLException {
         if (searchTitleInDateConnection.isClosed())
-            searchTitleInDateConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchTitleInDateConnection = DriverManager.getConnection(url, user, password);
         searchDescriptionInDate.setString(1, name);
         searchDescriptionInDate.setString(2, description);
         searchDescriptionInDate.setTimestamp(3, new Timestamp(from.getTime()));
@@ -128,7 +129,7 @@ public class Table {
 
     public ResultSet searchOnTitleInSpecificSite(String agencyName, String title, int offset, int count) throws SQLException {
         if (searchOnTitleInSpecificSiteConnection.isClosed())
-            searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnTitleInSpecificSite.setString(1, name);
         searchOnTitleInSpecificSite.setString(2, agencyName);
         searchOnTitleInSpecificSite.setString(3, title);
@@ -139,18 +140,18 @@ public class Table {
 
     public ResultSet searchOnContentInSpecificSite(String agencyName, String content, int offset, int count) throws SQLException {
         if (searchOnContentInSpecificSiteConnection.isClosed())
-            searchOnContentInSpecificSiteConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentInSpecificSite.setString(1, name);
         searchOnContentInSpecificSite.setString(2, agencyName);
         searchOnContentInSpecificSite.setString(3, content);
-        searchOnContentInSpecificSite.setInt(5, offset);
-        searchOnContentInSpecificSite.setInt(6, count);
+        searchOnContentInSpecificSite.setInt(4, offset);
+        searchOnContentInSpecificSite.setInt(5, count);
         return searchOnContentInSpecificSite.executeQuery();
     }
 
     public ResultSet searchOnContent(String content, int offset, int count) throws SQLException {
         if (searchOnContentConnection.isClosed())
-            searchOnContentConnection = DriverManager.getConnection(URL, USER, PASSWORD);
+            searchOnContentConnection = DriverManager.getConnection(url, user, password);
         searchOnContent.setString(1, name);
         searchOnContent.setString(2, content);
         searchOnContent.setInt(3, offset);

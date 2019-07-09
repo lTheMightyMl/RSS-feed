@@ -17,7 +17,8 @@ public class ProcessAgency implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(ProcessAgency.class);
 
     private Table table;
-    private String agencyName, agencyURL;
+    private String agencyName;
+    private String agencyURL;
 
 
     ProcessAgency(Table table, String agencyName, String agencyURL) {
