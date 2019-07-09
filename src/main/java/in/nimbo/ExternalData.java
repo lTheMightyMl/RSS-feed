@@ -1,15 +1,16 @@
 package in.nimbo;
 
 import in.nimbo.exception.BadPropertiesFile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 
-import static in.nimbo.App.LOGGER;
-
 public class ExternalData {
+    private static final Logger LOGGER = LogManager.getLogger(App.class);
 
     private String propertiesPath;
     private Properties properties;
@@ -26,10 +27,10 @@ public class ExternalData {
 
     private void checkValid() throws BadPropertiesFile {
 
-        int count = 0 ;
-        for(String reservedKey : reservedKeysForDB)
-            if(properties.containsKey(reservedKey))
-                ++ count;
+        int count = 0;
+        for (String reservedKey : reservedKeysForDB)
+            if (properties.containsKey(reservedKey))
+                ++count;
 
         if (count != reservedKeysForDB.size()) {
             throw new BadPropertiesFile("database properties missing in properties file");
@@ -58,9 +59,9 @@ public class ExternalData {
     HashMap<String, String> getAllAgencies() {
         HashMap<String, String> agencies = new HashMap<>();
         String key;
-        for (Map.Entry<Object, Object> property: properties.entrySet()) {
+        for (Map.Entry<Object, Object> property : properties.entrySet()) {
             key = ((String) property.getKey());
-            if (! reservedKeysForDB.contains(key)) {
+            if (!reservedKeysForDB.contains(key)) {
                 key = key.substring(9);
                 agencies.put(key, (String) property.getValue());
             }
