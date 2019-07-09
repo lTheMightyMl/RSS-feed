@@ -1,14 +1,11 @@
 package in.nimbo.database;
 
 import in.nimbo.ExternalData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.Date;
 
 public class Table {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
     private static final String URL = ExternalData.getPropertyValue("url");
     private static final String USER = ExternalData.getPropertyValue("user");
     private static final String PASSWORD = ExternalData.getPropertyValue("password");

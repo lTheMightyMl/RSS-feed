@@ -7,8 +7,8 @@ import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import in.nimbo.database.Table;
 import in.nimbo.exception.BadPropertiesFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URL;
@@ -42,7 +42,7 @@ public class App {
     private static final String SEARCH_TITLE_AND_AGENCY = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + AGENCY;
     private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" + AGENCY;
     private static final String EXIT = "exit";
-    private static final Logger LOGGER = LoggerFactory.getLogger(Table.class);
+    private static final Logger LOGGER = LogManager.getLogger(App.class);
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String PUBLISHED_DATE = "published_date";
     private static final String AUTHOR = "author";
@@ -76,10 +76,11 @@ public class App {
                 }
             }));
             writeToDB(rssFeeds);
-            String command = SCANNER.nextLine().trim();
+            String command = "";
             while (!command.matches(EXIT)) {
-                decide(rssFeeds, command);
+                LOGGER.info("Enter your request");
                 command = SCANNER.nextLine().trim();
+                decide(rssFeeds, command);
             }
         } catch (SQLException | IOException | ParseException | FeedException e) {
             LOGGER.error("", e);
@@ -193,13 +194,13 @@ public class App {
         LOGGER.info(publishedDateString);
         LOGGER.info(description);
         LOGGER.info(author);
+        LOGGER.info("");
     }
 
     private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
         HashMap<String, String> agencies = ExternalData.getAllAgencies();
         final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            processAgency(rssFeeds, agency.getKey(), agency.getValue());
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(() -> {
                 try {
                     processAgency(rssFeeds, agency.getKey(), agency.getValue());
