@@ -1,6 +1,5 @@
 package in.nimbo;
 
-import com.rometools.rome.io.FeedException;
 import in.nimbo.database.Table;
 import in.nimbo.exception.BadPropertiesFile;
 import org.apache.logging.log4j.LogManager;
@@ -28,14 +27,20 @@ public class App {
     private static final String FROM_DATE_TO_DATE = DATE + "\\s+" + DATE;
     private static final String TITLE_LITERAL = "title";
     private static final String SEARCH_TITLE = TITLE_LITERAL + "\\s+" + TITLE;
+    private static final Pattern SEARCH_TITLE_PATTERN = Pattern.compile(SEARCH_TITLE);
     private static final String SEARCH_TITLE_AND_DATE = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + FROM_DATE_TO_DATE;
+    private static final Pattern SEARCH_TITLE_AND_DATE_PATTERN = Pattern.compile(SEARCH_TITLE_AND_DATE);
     private static final String DESCRIPTION_LITERAL = "description";
     private static final String SEARCH_DESCRIPTION_AND_DATE = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" +
             FROM_DATE_TO_DATE;
+    private static final Pattern SEARCH_DESCRIPTION_AND_DATE_PATTERN = Pattern.compile(SEARCH_DESCRIPTION_AND_DATE);
     private static final String SEARCH_DESCRIPTION = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION;
+    private static final Pattern SEARCH_DESCRIPTION_PATTERN = Pattern.compile(SEARCH_DESCRIPTION);
     private static final String AGENCY = TEXT;
     private static final String SEARCH_TITLE_AND_AGENCY = TITLE_LITERAL + "\\s+" + TITLE + "\\s+" + AGENCY;
-    private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" + AGENCY;
+    private static final Pattern SEARCH_TITLE_AND_AGENCY_PATTERN = Pattern.compile(SEARCH_TITLE_AND_AGENCY);
+    private static final String SEARCH_DESCRIPTION_AND_AGENCY = DESCRIPTION_LITERAL + "\\s+" + DESCRIPTION + "\\s+" +
+            AGENCY;
     private static final String EXIT = "exit";
     private static final Logger LOGGER = LogManager.getLogger(App.class);
     private static final Scanner SCANNER = new Scanner(System.in);
@@ -44,22 +49,26 @@ public class App {
     private static final String NEWRSS = "new_rss\\s+(.+)";
     private static final String AGENCY_LITERAL = "agency";
     private static final int RESULT_COUNT = 10;
+    private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type " +
+            "\'Y\'";
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private static final Pattern URL_PATTERN = Pattern.compile("((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
+                    + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
 
     public static void main(String[] args) {
         ExternalData probs = null;
         try {
             probs = new ExternalData(args[0]);
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("Please pass address of properties file as argument");
+            LOGGER.info("Please pass address of properties file as argument");
             LOGGER.error("address of properties missing", e);
             System.exit(0);
         } catch (BadPropertiesFile badPropertiesFile) {
-            System.out.println("Bad properties file");
+            LOGGER.info("Bad properties file");
             LOGGER.error("database properties missing in properties file", badPropertiesFile);
             System.exit(0);
         } catch (IOException e) {
-            System.out.println("Wrong file path");
+            LOGGER.info("Wrong file path");
             LOGGER.error("given path for properties files is not exist");
             System.exit(0);
         }
@@ -76,16 +85,17 @@ public class App {
             writeToDB(rssFeeds, probs);
             String command = "";
             while (!command.matches(EXIT)) {
-                System.out.println("ready to take orders ...");
+                LOGGER.info("ready to take orders ...");
                 command = SCANNER.nextLine().trim();
                 decide(rssFeeds, command, probs);
             }
-        } catch (SQLException | IOException | ParseException | FeedException e) {
+        } catch (SQLException | IOException | ParseException e) {
             LOGGER.error("", e);
         }
     }
 
-    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException, IOException {
+    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException,
+            IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
@@ -114,8 +124,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -124,7 +134,7 @@ public class App {
     }
 
     private static void searchOnTitleInSpecificSite(Table rssFeeds, String command) throws SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_AGENCY).matcher(command);
+        Matcher matcher = SEARCH_TITLE_AND_AGENCY_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -135,8 +145,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -145,7 +155,7 @@ public class App {
     }
 
     private static void searchOnContent(Table rssFeeds, String command) throws SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION).matcher(command);
+        Matcher matcher = SEARCH_DESCRIPTION_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -155,8 +165,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -170,17 +180,13 @@ public class App {
         int index = 7;  // to find name of agency by storing the index of space after prev command
         final HashMap<String, String> agencies = new HashMap<>();
 
-        final Pattern urlPattern = Pattern.compile(
-                "((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
-                        + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
-
-        Matcher matcher = urlPattern.matcher(command);
+        Matcher matcher = URL_PATTERN.matcher(command);
         while (matcher.find()) {
             rssUrl = matcher.group(1);
             agencyName = command.substring(index, matcher.start()).trim();
 
             if (agencyName.isEmpty()) {
-                System.out.println("bad command format: agency name required for every agency");
+                LOGGER.info("bad command format: agency name required for every agency");
                 return;
             } else {
                 agencies.put(agencyName, rssUrl);
@@ -190,15 +196,16 @@ public class App {
         }
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
-            System.out.println("one rss added");
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+            LOGGER.info("one rss added");
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(),
+                    agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
 
     private static void searchDescriptionInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION_AND_DATE).matcher(command);
+        Matcher matcher = SEARCH_DESCRIPTION_AND_DATE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -209,8 +216,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -220,13 +227,14 @@ public class App {
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {
         while (resultSet.next())
-            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.getTimestamp(PUBLISHED_DATE).getTime()),
+            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.
+                            getTimestamp(PUBLISHED_DATE).getTime()),
                     resultSet.getString(DESCRIPTION_LITERAL), resultSet.getString(AUTHOR));
     }
 
     private static void searchTitleInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
-        Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_DATE).matcher(command);
+        Matcher matcher = SEARCH_TITLE_AND_DATE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -237,8 +245,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -251,7 +259,7 @@ public class App {
     }
 
     private static void searchTitle(final Table rssFeeds, final String command) throws SQLException {
-        final Matcher matcher = Pattern.compile(SEARCH_TITLE).matcher(command);
+        final Matcher matcher = SEARCH_TITLE_PATTERN.matcher(command);
         while (matcher.find()) {
             int offset = 0;
             while (true) {
@@ -261,8 +269,8 @@ public class App {
                 if (len < RESULT_COUNT) {
                     break;
                 } else {
-                    System.out.println("there is still some data, for more type \'Y\'");
-                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                    LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
+                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -270,7 +278,8 @@ public class App {
         }
     }
 
-    private static void printFeed(final String agency, final String title, final Date publishedDate, final String description, final String
+    private static void printFeed(final String agency, final String title, final Date publishedDate, final String
+            description, final String
             author) {
         final String publishedDateString = publishedDate.toString();
         LOGGER.info(agency);
@@ -281,7 +290,7 @@ public class App {
         LOGGER.info("");
     }
 
-    private static void writeToDB(final Table rssFeeds, ExternalData probs) throws IOException, FeedException {
+    private static void writeToDB(final Table rssFeeds, ExternalData probs) {
         HashMap<String, String> agencies = probs.getAllAgencies();
         int threadsOfPool = agencies.size();
         if (threadsOfPool > 10) {
@@ -289,8 +298,8 @@ public class App {
         }
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(), agency.getValue()),
-                    0, 20000, TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(),
+                            agency.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
         }
     }
 
