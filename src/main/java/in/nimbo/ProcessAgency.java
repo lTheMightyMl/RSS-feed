@@ -5,16 +5,16 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import in.nimbo.database.Table;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.Date;
 
-import static in.nimbo.App.LOGGER;
-
-
 public class ProcessAgency implements Runnable {
+    private static final Logger LOGGER = LogManager.getLogger(ProcessAgency.class);
 
     private Table table;
     private String agencyName, agencyURL;

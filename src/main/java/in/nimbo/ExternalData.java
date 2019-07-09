@@ -1,6 +1,8 @@
 package in.nimbo;
 
 import in.nimbo.exception.BadPropertiesFile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,6 +12,7 @@ import java.util.*;
 import static in.nimbo.App.LOGGER;
 
 public class ExternalData {
+    private static final Logger LOGGER = LogManager.getLogger(App.class);
 
     private String propertiesPath;
     private Properties properties;
