@@ -43,11 +43,13 @@ public class App {
     private static final String AUTHOR = "author";
     private static final String NEWRSS = "new_rss\\s+(.+)";
     private static final String AGENCY_LITERAL = "agency";
+    private static final int RESULT_COUNT = 10;
     private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public static void main(String[] args) {
+        ExternalData probs = null;
         try {
-            ExternalData.loadProperties(args[0]);
+            probs = new ExternalData(args[0]);
         } catch (ArrayIndexOutOfBoundsException e) {
             System.out.println("Please pass address of properties file as argument");
             LOGGER.error("address of properties missing", e);
@@ -63,7 +65,7 @@ public class App {
         }
         final Table rssFeeds;
         try {
-            rssFeeds = new Table(ExternalData.getPropertyValue("table"));
+            rssFeeds = new Table(probs.getPropertyValue("table"));
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     rssFeeds.close();
@@ -71,19 +73,19 @@ public class App {
                     LOGGER.error("", e);
                 }
             }));
-            writeToDB(rssFeeds);
+            writeToDB(rssFeeds, probs);
             String command = "";
             while (!command.matches(EXIT)) {
                 System.out.println("ready to take orders ...");
                 command = SCANNER.nextLine().trim();
-                decide(rssFeeds, command);
+                decide(rssFeeds, command, probs);
             }
         } catch (SQLException | IOException | ParseException | FeedException e) {
             LOGGER.error("", e);
         }
     }
 
-    private static void decide(Table rssFeeds, String command) throws SQLException, ParseException, IOException {
+    private static void decide(Table rssFeeds, String command, ExternalData probs) throws SQLException, ParseException, IOException {
         if (command.matches(SEARCH_TITLE))
             searchTitle(rssFeeds, command);
         else if (command.matches(SEARCH_TITLE_AND_DATE))
@@ -97,28 +99,72 @@ public class App {
         else if (command.matches(SEARCH_DESCRIPTION_AND_AGENCY))
             searchOnContentInSpecificSite(rssFeeds, command);
         else if (command.matches(NEWRSS))
-            addNewRss(rssFeeds, command);
+            addNewRss(rssFeeds, command, probs);
     }
 
     private static void searchOnContentInSpecificSite(Table rssFeeds, String command) throws SQLException {
         Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION_AND_AGENCY).matcher(command);
-        while (matcher.find())
-            printResultSet(rssFeeds.searchOnContentInSpecificSite(matcher.group(2), matcher.group(1)));
+        while (matcher.find()) {
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchOnContentInSpecificSite(matcher.group(2), matcher.group(1),
+                        offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static void searchOnTitleInSpecificSite(Table rssFeeds, String command) throws SQLException {
         Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_AGENCY).matcher(command);
-        while (matcher.find())
-            printResultSet(rssFeeds.searchOnTitleInSpecificSite(matcher.group(2), matcher.group(1)));
+        while (matcher.find()) {
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchOnTitleInSpecificSite(matcher.group(2), matcher.group(1),
+                        offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static void searchOnContent(Table rssFeeds, String command) throws SQLException {
         Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION).matcher(command);
-        while (matcher.find())
-            printResultSet(rssFeeds.searchOnContent(matcher.group(1)));
+        while (matcher.find()) {
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchOnContent(matcher.group(1), offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
-    private static void addNewRss(final Table rssFeeds, String command) throws IOException {
+    private static void addNewRss(final Table rssFeeds, String command, ExternalData probs) throws IOException {
         String agencyName;
         String rssUrl;
         int index = 7;  // to find name of agency by storing the index of space after prev command
@@ -133,7 +179,7 @@ public class App {
             rssUrl = matcher.group(1);
             agencyName = command.substring(index, matcher.start()).trim();
 
-            if (agencyName.equals("")) {
+            if (agencyName.isEmpty()) {
                 System.out.println("bad command format: agency name required for every agency");
                 return;
             } else {
@@ -145,17 +191,31 @@ public class App {
 
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             System.out.println("one rss added");
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
-            ExternalData.addProperty(agenc.getKey(), agenc.getValue());
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(), agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+            probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
 
     private static void searchDescriptionInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
         Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION_AND_DATE).matcher(command);
-        while (matcher.find())
-            printResultSet(rssFeeds.searchDescriptionInDate(matcher.group(1), toDate(matcher.group(2)), toDate(matcher.
-                    group(3))));
+        while (matcher.find()) {
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchDescriptionInDate(matcher.group(1), toDate(matcher.group(2)),
+                        toDate(matcher.group(3)), offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {
@@ -167,9 +227,23 @@ public class App {
     private static void searchTitleInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
         Matcher matcher = Pattern.compile(SEARCH_TITLE_AND_DATE).matcher(command);
-        while (matcher.find())
-            printResultSet(rssFeeds.searchTitleInDate(matcher.group(1), toDate(matcher.group(2)), toDate(matcher.group(3
-            ))));
+        while (matcher.find()) {
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchTitleInDate(matcher.group(1), toDate(matcher.group(2)),
+                        toDate(matcher.group(3)), offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static Date toDate(String date) throws ParseException {
@@ -179,8 +253,20 @@ public class App {
     private static void searchTitle(final Table rssFeeds, final String command) throws SQLException {
         final Matcher matcher = Pattern.compile(SEARCH_TITLE).matcher(command);
         while (matcher.find()) {
-            final ResultSet resultSet = rssFeeds.searchTitle(matcher.group(1));
-            printResultSet(resultSet);
+            int offset = 0;
+            while (true) {
+                ResultSet resultSet = rssFeeds.searchTitle(matcher.group(1), offset, RESULT_COUNT);
+                int len = resultSetSize(resultSet);
+                printResultSet(resultSet);
+                if (len < RESULT_COUNT) {
+                    break;
+                } else {
+                    System.out.println("there is still some data, for more type \'Y\'");
+                    if (! SCANNER.next().trim().toLowerCase().equals("y")) {
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -194,12 +280,23 @@ public class App {
         LOGGER.info(author);
     }
 
-    private static void writeToDB(final Table rssFeeds) throws IOException, FeedException {
-        HashMap<String, String> agencies = ExternalData.getAllAgencies();
-        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(agencies.size());
+    private static void writeToDB(final Table rssFeeds, ExternalData probs) throws IOException, FeedException {
+        HashMap<String, String> agencies = probs.getAllAgencies();
+        int threadsOfPool = agencies.size();
+        if (threadsOfPool > 10) {
+            threadsOfPool = 10;
+        }
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgencie(rssFeeds, agency.getKey(), agency.getValue()),
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(), agency.getValue()),
                     0, 20000, TimeUnit.MILLISECONDS);
         }
+    }
+
+    private static int resultSetSize(ResultSet resultSet) throws SQLException {
+        resultSet.last();
+        int len = resultSet.getRow();
+        resultSet.beforeFirst();
+        return len;
     }
 }
