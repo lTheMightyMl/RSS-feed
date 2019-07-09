@@ -4,6 +4,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import java.sql.ResultSet;
+
 /**
  * Unit test for RSS-feed app.
  */
@@ -19,6 +21,10 @@ public class AppTest {
     @Test
     public void addNewRss() {
 
+    }
+
+    @Test
+    public void resultSetSize() {
     }
 
 }
