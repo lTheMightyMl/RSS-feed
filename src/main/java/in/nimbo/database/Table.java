@@ -38,11 +38,9 @@ public class Table {
         searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentConnection = DriverManager.getConnection(url, user, password);
         try (Connection connection = DriverManager.getConnection(url, user, password);
-             PreparedStatement prestatement = connection.prepareStatement("DO $$ BEGIN IF NOT EXISTS(SELECT 1 " +
-                     "FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '" + name + "') " +
-                     "THEN CREATE TABLE " + name + "(agency text, title text, published_date timestamp (6) without " +
-                     "time zone, description text, author text); END IF; END $$;")
-        ) {
+             PreparedStatement prestatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS " + name +
+                     "(agency text, title text, published_date timestamp (6) without time zone," +
+                     " description text, author text);")) {
             prestatement.executeUpdate();
             searchTitle = searchTitleConnection.prepareStatement("SELECT * FROM ? WHERE title ~ ? OFFSET ? ROWS " +
                     "FETCH NEXT ? ROWS ONLY;");
