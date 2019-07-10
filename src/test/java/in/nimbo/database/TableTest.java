@@ -28,12 +28,6 @@ public class TableTest {
         password = props.getPropertyValue("password");
         table = new Table(name, props);
         conn = DriverManager.getConnection(url, user, password);
-
-        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + ";");
-        ResultSet resultSet = preparedStatement.executeQuery();
-        while (resultSet.next()) {
-            System.out.println(resultSet.getMetaData());
-        }
     }
 
     @Test

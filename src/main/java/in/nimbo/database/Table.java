@@ -42,8 +42,7 @@ public class Table {
              PreparedStatement prestatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS " + name +
                      "(agency text, title text, published_date timestamp (6) without time zone," +
                      " description text, author text);")) {
-            boolean b = prestatement.execute();
-            System.out.println("table created? : " + b);
+            prestatement.execute();
         }
         this.name = name;
     }
