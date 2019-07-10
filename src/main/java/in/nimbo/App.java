@@ -114,18 +114,18 @@ public class App {
 
     private static void searchOnContentInSpecificSite(Table rssFeeds, String command) throws SQLException {
         Matcher matcher = Pattern.compile(SEARCH_DESCRIPTION_AND_AGENCY).matcher(command);
-        while (matcher.find()) {
+        if (matcher.find()) {
             int offset = 0;
             while (true) {
                 ResultSet resultSet = rssFeeds.searchOnContentInSpecificSite(matcher.group(2), matcher.group(1),
                         offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -140,13 +140,13 @@ public class App {
             while (true) {
                 ResultSet resultSet = rssFeeds.searchOnTitleInSpecificSite(matcher.group(2), matcher.group(1),
                         offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -160,13 +160,13 @@ public class App {
             int offset = 0;
             while (true) {
                 ResultSet resultSet = rssFeeds.searchOnContent(matcher.group(1), offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -211,13 +211,13 @@ public class App {
             while (true) {
                 ResultSet resultSet = rssFeeds.searchDescriptionInDate(matcher.group(1), toDate(matcher.group(2)),
                         toDate(matcher.group(3)), offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -225,28 +225,32 @@ public class App {
         }
     }
 
-    private static void printResultSet(ResultSet resultSet) throws SQLException {
-        while (resultSet.next())
+    private static int printResultSet(ResultSet resultSet) throws SQLException {
+        int count = 0;
+        while (resultSet.next()) {
+            count++;
             printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.
                             getTimestamp(PUBLISHED_DATE).getTime()),
                     resultSet.getString(DESCRIPTION_LITERAL), resultSet.getString(AUTHOR));
+        }
+        return count;
     }
 
     private static void searchTitleInDate(final Table rssFeeds, final String command) throws ParseException,
             SQLException {
         Matcher matcher = SEARCH_TITLE_AND_DATE_PATTERN.matcher(command);
-        while (matcher.find()) {
+        if (matcher.find()) {
             int offset = 0;
             while (true) {
                 ResultSet resultSet = rssFeeds.searchTitleInDate(matcher.group(1), toDate(matcher.group(2)),
                         toDate(matcher.group(3)), offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -260,17 +264,17 @@ public class App {
 
     private static void searchTitle(final Table rssFeeds, final String command) throws SQLException {
         final Matcher matcher = SEARCH_TITLE_PATTERN.matcher(command);
-        while (matcher.find()) {
+        if (matcher.find()) {
             int offset = 0;
             while (true) {
                 ResultSet resultSet = rssFeeds.searchTitle(matcher.group(1), offset, RESULT_COUNT);
-                int len = resultSetSize(resultSet);
-                printResultSet(resultSet);
-                if (len < RESULT_COUNT) {
+                int length = printResultSet(resultSet);
+                if (length == 0) {
                     break;
                 } else {
+                    offset += length;
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
                 }
@@ -301,12 +305,5 @@ public class App {
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(),
                             agency.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
         }
-    }
-
-    private static int resultSetSize(ResultSet resultSet) throws SQLException {
-        resultSet.last();
-        int len = resultSet.getRow();
-        resultSet.beforeFirst();
-        return len;
     }
 }
