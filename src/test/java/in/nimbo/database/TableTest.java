@@ -15,9 +15,11 @@ public class TableTest {
     private static String url;
     private static String user;
     private static String password;
+    private static String JDBC_DRIVER = "org.h2.Driver";
 
     @BeforeClass
     public static void creatingTable() throws Exception {
+        Class.forName(JDBC_DRIVER);
         ExternalData props = new ExternalData("src/test/resources/data.properties");
         url = props.getPropertyValue("url");
         String table = props.getPropertyValue("table");
