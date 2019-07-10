@@ -20,7 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class App {
-    private static final String TEXT = "(\\w+)";
+    private static final String TEXT = "(\\[^\\s]+)";
     private static final String TITLE = TEXT;
     private static final String DESCRIPTION = TEXT;
     private static final String DATE = "(\\d{4}\\\\\\d{2}\\\\\\d{2})";
@@ -120,7 +120,7 @@ public class App {
                 ResultSet resultSet = rssFeeds.searchOnContentInSpecificSite(matcher.group(2), matcher.group(1),
                         offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
@@ -141,7 +141,7 @@ public class App {
                 ResultSet resultSet = rssFeeds.searchOnTitleInSpecificSite(matcher.group(2), matcher.group(1),
                         offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
@@ -161,7 +161,7 @@ public class App {
             while (true) {
                 ResultSet resultSet = rssFeeds.searchOnContent(matcher.group(1), offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
@@ -212,7 +212,7 @@ public class App {
                 ResultSet resultSet = rssFeeds.searchDescriptionInDate(matcher.group(1), toDate(matcher.group(2)),
                         toDate(matcher.group(3)), offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
@@ -245,7 +245,7 @@ public class App {
                 ResultSet resultSet = rssFeeds.searchTitleInDate(matcher.group(1), toDate(matcher.group(2)),
                         toDate(matcher.group(3)), offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
@@ -269,7 +269,7 @@ public class App {
             while (true) {
                 ResultSet resultSet = rssFeeds.searchTitle(matcher.group(1), offset, RESULT_COUNT);
                 int length = printResultSet(resultSet);
-                if (length == 0) {
+                if (length < RESULT_COUNT) {
                     break;
                 } else {
                     offset += length;
