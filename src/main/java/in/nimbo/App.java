@@ -81,7 +81,7 @@ public class App {
                     rssFeeds.close();
                     scheduledThreadPoolExecutor.shutdown();
                 } catch (SQLException e) {
-                    LOGGER.error("", e);
+                    LOGGER.error("error in closing connection in the end of app", e);
                 }
             }));
             writeToDB(rssFeeds, probs);
@@ -92,7 +92,7 @@ public class App {
                 decide(rssFeeds, command, probs);
             }
         } catch (SQLException | IOException | ParseException e) {
-            LOGGER.error("", e);
+            LOGGER.error("error in the app ;)) ", e);
         }
     }
 
@@ -179,7 +179,7 @@ public class App {
     private static void addNewRss(final Table rssFeeds, String command, ExternalData probs) throws IOException {
         String agencyName;
         String rssUrl;
-        int index = 7;  // to find name of agency by storing the index of space after prev command
+        int index = 7;  // to find name of agency by storing the index of space after prev agency url (first space after new_rss )
         final HashMap<String, String> agencies = new HashMap<>();
 
         Matcher matcher = URL_PATTERN.matcher(command);
@@ -200,7 +200,7 @@ public class App {
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             LOGGER.info("one rss added");
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(),
-                    agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+                    agenc.getValue()), 100, 60000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
@@ -284,12 +284,10 @@ public class App {
             description, final String
             author) {
         final String publishedDateString = publishedDate.toString();
-        LOGGER.info(agency);
-        LOGGER.info(title);
-        LOGGER.info(publishedDateString);
-        LOGGER.info(description);
-        LOGGER.info(author);
-        LOGGER.info("");
+        LOGGER.info("agency : " + agency + "\t published date : " + publishedDateString + "\t author : " + author);
+        LOGGER.info("\ttitle : " + title);
+        LOGGER.info("\tdescription : " + description);
+        LOGGER.info("*********************************************************************************************");
     }
 
     private static void writeToDB(final Table rssFeeds, ExternalData probs) {
@@ -301,7 +299,7 @@ public class App {
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(),
-                            agency.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+                            agency.getValue()), 100, 60000, TimeUnit.MILLISECONDS);
         }
     }
 
