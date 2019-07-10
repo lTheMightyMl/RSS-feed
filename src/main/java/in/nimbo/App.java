@@ -304,9 +304,10 @@ public class App {
     }
 
     public static int resultSetSize(ResultSet resultSet) throws SQLException {
-        resultSet.last();
-        int len = resultSet.getRow();
-        resultSet.beforeFirst();
+        int len = 0;
+        while (resultSet.next()) {
+            len ++;
+        }
         return len;
     }
 }
