@@ -5,15 +5,9 @@ jdk:
 
 install: true
 
-services:
-  - postgresql
-
 branches:
   only:
     - master
-
-before_script:
-  - psql -c 'create database test;' -U postgres
 
 notifications:
   email: false
