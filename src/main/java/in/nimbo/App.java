@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -51,7 +52,7 @@ public class App {
     private static final int RESULT_COUNT = 10;
     private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type " +
             "\'Y\'";
-    private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private static ScheduledExecutorService scheduledThreadPoolExecutor;
     private static final Pattern URL_PATTERN = Pattern.compile("((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
                     + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
 
@@ -78,6 +79,7 @@ public class App {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     rssFeeds.close();
+                    scheduledThreadPoolExecutor.shutdown();
                 } catch (SQLException e) {
                     LOGGER.error("", e);
                 }
