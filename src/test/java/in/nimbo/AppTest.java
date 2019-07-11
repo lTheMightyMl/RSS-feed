@@ -60,7 +60,8 @@ public class AppTest {
     public void resultSetSize1() throws Exception {
         if (conn.isClosed())
             conn = DriverManager.getConnection(url, user, password);
-        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where id = -1;");
+        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where id = -1;"
+                , ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet resultSet = preparedStatement.executeQuery();
         int len = App.resultSetSize(resultSet);
         Assert.assertEquals(len, 0);
@@ -73,7 +74,8 @@ public class AppTest {
     public void resultSetSize2() throws Exception {
         if (conn.isClosed())
             conn = DriverManager.getConnection(url, user, password);
-        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where id = 1;");
+        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where id = 1;"
+                , ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet resultSet = preparedStatement.executeQuery();
         int len = App.resultSetSize(resultSet);
         Assert.assertEquals(len, 1);
@@ -86,7 +88,8 @@ public class AppTest {
     public void resultSetSize3() throws Exception{
         if (conn.isClosed())
             conn = DriverManager.getConnection(url, user, password);
-        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where name = 'sahab';");
+        PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM " + name + " where name = 'sahab';"
+                , ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet resultSet = preparedStatement.executeQuery();
         int len = App.resultSetSize(resultSet);
         Assert.assertEquals(len, 5);
