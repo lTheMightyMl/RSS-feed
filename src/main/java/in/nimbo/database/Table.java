@@ -162,29 +162,34 @@ public class Table {
     }
 
     private void closePreparedStatements() throws SQLException {
-        searchTitle.close();
-        searchTitleInDate.close();
-        searchDescriptionInDate.close();
-        searchOnTitleInSpecificSite.close();
-        searchOnContentInSpecificSite.close();
-        searchOnContent.close();
-        allNews.close();
+        try {
+            searchTitle.close();
+            searchTitleInDate.close();
+            searchDescriptionInDate.close();
+            searchOnTitleInSpecificSite.close();
+            searchOnContentInSpecificSite.close();
+            searchOnContent.close();
+            allNews.close();
+        } catch (NullPointerException ignored) {}
     }
 
     private void closeConnections() throws SQLException {
-        searchTitleConnection.close();
-        searchTitleInDateConnection.close();
-        searchDescriptionInDateConnection.close();
-        searchOnTitleInSpecificSiteConnection.close();
-        searchOnContentInSpecificSiteConnection.close();
-        searchOnContentConnection.close();
-        allNewsConnection.close();
+        try {
+            searchTitleConnection.close();
+            searchTitleInDateConnection.close();
+            searchDescriptionInDateConnection.close();
+            searchOnTitleInSpecificSiteConnection.close();
+            searchOnContentInSpecificSiteConnection.close();
+            searchOnContentConnection.close();
+            allNewsConnection.close();
+        } catch (NullPointerException ignored) {}
     }
 
     public int sizeOfAllNews() throws SQLException {
         if (allNewsConnection.isClosed())
             allNewsConnection = DriverManager.getConnection(url, user, password);
-        allNews = allNewsConnection.prepareStatement("select * from " + name + ";");
+        allNews = allNewsConnection.prepareStatement("select * from " + name + ";"
+                , ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         return App.resultSetSize(allNews.executeQuery());
     }
 }
