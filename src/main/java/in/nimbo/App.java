@@ -91,7 +91,7 @@ public class App {
                 command = SCANNER.nextLine().trim();
                 decide(rssFeeds, command, probs);
             }
-        } catch (SQLException | IOException | ParseException e) {
+        } catch (SQLException | IOException | ParseException | NullPointerException e) {
             LOGGER.error("error in the app ;)) ", e);
         }
     }
