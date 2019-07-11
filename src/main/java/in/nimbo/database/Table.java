@@ -14,6 +14,7 @@ public class Table {
     private PreparedStatement searchOnTitleInSpecificSite;
     private PreparedStatement searchOnContentInSpecificSite;
     private PreparedStatement searchOnContent;
+    private PreparedStatement allNews;
     private String url;
     private String user;
     private String password;
@@ -23,6 +24,7 @@ public class Table {
     private Connection searchOnTitleInSpecificSiteConnection;
     private Connection searchOnContentInSpecificSiteConnection;
     private Connection searchOnContentConnection;
+    private Connection allNewsConnection;
     private String name;
 
     public Table(String name, ExternalData probs) throws SQLException {
@@ -38,6 +40,7 @@ public class Table {
         searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentConnection = DriverManager.getConnection(url, user, password);
+        allNewsConnection = DriverManager.getConnection(url, user, password);
         try (Connection connection = DriverManager.getConnection(url, user, password);
              PreparedStatement prestatement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS " + name +
                      "(agency text, title text, published_date timestamp (6) without time zone," +
@@ -61,7 +64,7 @@ public class Table {
             author = " ";
         try (Connection connection = DriverManager.getConnection(url, user, password);
              PreparedStatement pscheck = connection.prepareStatement("select  * from  " + name + " where " +
-                     "agency = ? and title = ?");
+                     "agency = ? and title = ?", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
              PreparedStatement psinsert = connection.prepareStatement("insert into " + name + " values (?, ?, ?, ?, ?)")) {
             pscheck.setString(1, agencyName);
             pscheck.setString(2, title);
@@ -81,7 +84,7 @@ public class Table {
         if (searchTitleConnection.isClosed())
             searchTitleConnection = DriverManager.getConnection(url, user, password);
         searchTitle = searchTitleConnection.prepareStatement("SELECT * FROM " + name + " WHERE title ~ ? OFFSET ? ROWS " +
-                "FETCH NEXT ? ROWS ONLY;");
+                "FETCH NEXT ? ROWS ONLY;", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchTitle.setString(1, title);
         searchTitle.setInt(2, offset);
         searchTitle.setInt(3, count);
@@ -93,7 +96,7 @@ public class Table {
             searchTitleInDateConnection = DriverManager.getConnection(url, user, password);
         searchTitleInDate = searchTitleInDateConnection.prepareStatement("SELECT * FROM " + name + " WHERE " +
                 "title ~ ? AND published_date >= ? AND published_date <= ? " +
-                OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
+                OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchTitleInDate.setString(1, title);
         searchTitleInDate.setTimestamp(2, new Timestamp(from.getTime()));
         searchTitleInDate.setTimestamp(3, new Timestamp(to.getTime()));
@@ -107,7 +110,7 @@ public class Table {
             searchTitleInDateConnection = DriverManager.getConnection(url, user, password);
         searchDescriptionInDate = searchDescriptionInDateConnection.prepareStatement("SELECT * " +
                 "FROM " + name + " WHERE description ~ ? AND published_date >= ? AND published_date <= ? " +
-                OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
+                OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchDescriptionInDate.setString(1, description);
         searchDescriptionInDate.setTimestamp(2, new Timestamp(from.getTime()));
         searchDescriptionInDate.setTimestamp(3, new Timestamp(to.getTime()));
@@ -121,7 +124,7 @@ public class Table {
             searchOnTitleInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnTitleInSpecificSite = searchOnTitleInSpecificSiteConnection.prepareStatement(
                 "SELECT * FROM " + name + " WHERE agency = ? AND title ~ ? " +
-                        OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
+                        OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchOnTitleInSpecificSite.setString(1, agencyName);
         searchOnTitleInSpecificSite.setString(2, title);
         searchOnTitleInSpecificSite.setInt(3, offset);
@@ -134,7 +137,7 @@ public class Table {
             searchOnContentInSpecificSiteConnection = DriverManager.getConnection(url, user, password);
         searchOnContentInSpecificSite = searchOnContentInSpecificSiteConnection.prepareStatement(
                 "SELECT * FROM " + name + " WHERE agency = ? AND description ~ ? " +
-                        OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY);
+                        OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchOnContentInSpecificSite.setString(1, agencyName);
         searchOnContentInSpecificSite.setString(2, content);
         searchOnContentInSpecificSite.setInt(3, offset);
@@ -145,8 +148,8 @@ public class Table {
     public ResultSet searchOnContent(String content, int offset, int count) throws SQLException {
         if (searchOnContentConnection.isClosed())
             searchOnContentConnection = DriverManager.getConnection(url, user, password);
-        searchOnContent = searchOnContentConnection.prepareStatement("SELECT * FROM " + name + " WHERE " +
-                "description ~ ? OFFSET ? ROWS FETCH NEXT ? ROWS ONLY;");
+        searchOnContent = searchOnContentConnection.prepareStatement("SELECT * FROM " + name + " WHERE description ~ ? "
+                + OFFSET_ROWS_FETCH_NEXT_ROWS_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
         searchOnContent.setString(1, content);
         searchOnContent.setInt(2, offset);
         searchOnContent.setInt(3, count);
@@ -165,6 +168,7 @@ public class Table {
         searchOnTitleInSpecificSite.close();
         searchOnContentInSpecificSite.close();
         searchOnContent.close();
+        allNews.close();
     }
 
     private void closeConnections() throws SQLException {
@@ -174,5 +178,13 @@ public class Table {
         searchOnTitleInSpecificSiteConnection.close();
         searchOnContentInSpecificSiteConnection.close();
         searchOnContentConnection.close();
+        allNewsConnection.close();
+    }
+
+    public int sizeOfAllNews() throws SQLException {
+        if (allNewsConnection.isClosed())
+            allNewsConnection = DriverManager.getConnection(url, user, password);
+        allNews = allNewsConnection.prepareStatement("select * from " + name + ";");
+        return App.resultSetSize(allNews.executeQuery());
     }
 }
