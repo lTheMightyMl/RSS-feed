@@ -14,12 +14,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class App {
+    private static final String HELP = "help";
+    private static final String STATUS = "status";
     private static final String TEXT = "(\\w+)";
     private static final String TITLE = TEXT;
     private static final String DESCRIPTION = TEXT;
@@ -51,7 +54,7 @@ public class App {
     private static final int RESULT_COUNT = 10;
     private static final String THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y = "there is still some data, for more type " +
             "\'Y\'";
-    private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private static ScheduledExecutorService scheduledThreadPoolExecutor;
     private static final Pattern URL_PATTERN = Pattern.compile("((https?|ftp|gopher|telnet|file):((//)|(\\\\))"
                     + "+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)");
 
@@ -62,15 +65,15 @@ public class App {
         } catch (ArrayIndexOutOfBoundsException e) {
             LOGGER.info("Please pass address of properties file as argument");
             LOGGER.error("address of properties missing", e);
-            System.exit(0);
+            return;
         } catch (BadPropertiesFile badPropertiesFile) {
             LOGGER.info("Bad properties file");
             LOGGER.error("database properties missing in properties file", badPropertiesFile);
-            System.exit(0);
+            return;
         } catch (IOException e) {
             LOGGER.info("Wrong file path");
             LOGGER.error("given path for properties files is not exist");
-            System.exit(0);
+            return;
         }
         final Table rssFeeds;
         try {
@@ -78,8 +81,9 @@ public class App {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try {
                     rssFeeds.close();
-                } catch (SQLException e) {
-                    LOGGER.error("", e);
+                    scheduledThreadPoolExecutor.shutdown();
+                } catch (SQLException | NullPointerException e) {
+                    LOGGER.error("error in closing connection in the end of app", e);
                 }
             }));
             writeToDB(rssFeeds, probs);
@@ -90,7 +94,7 @@ public class App {
                 decide(rssFeeds, command, probs);
             }
         } catch (SQLException | IOException | ParseException e) {
-            LOGGER.error("", e);
+            LOGGER.error("error in the app ;)) ", e);
         }
     }
 
@@ -110,6 +114,10 @@ public class App {
             searchOnContentInSpecificSite(rssFeeds, command);
         else if (command.matches(NEWRSS))
             addNewRss(rssFeeds, command, probs);
+        else if (command.matches(HELP))
+            help();
+        else if (command.matches(STATUS))
+            getStatus(probs, rssFeeds);
     }
 
     private static void searchOnContentInSpecificSite(Table rssFeeds, String command) throws SQLException {
@@ -125,9 +133,10 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
@@ -146,9 +155,10 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
@@ -166,9 +176,10 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
@@ -177,7 +188,7 @@ public class App {
     private static void addNewRss(final Table rssFeeds, String command, ExternalData probs) throws IOException {
         String agencyName;
         String rssUrl;
-        int index = 7;  // to find name of agency by storing the index of space after prev command
+        int index = 7;  // to find name of agency by storing the index of space after prev agency url (first space after new_rss )
         final HashMap<String, String> agencies = new HashMap<>();
 
         Matcher matcher = URL_PATTERN.matcher(command);
@@ -198,7 +209,7 @@ public class App {
         for (Map.Entry<String, String> agenc : agencies.entrySet()) {
             LOGGER.info("one rss added");
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agenc.getKey(),
-                    agenc.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+                    agenc.getValue()), 100, 60000, TimeUnit.MILLISECONDS);
             probs.addProperty(agenc.getKey(), agenc.getValue());
         }
     }
@@ -217,19 +228,21 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
     }
 
     private static void printResultSet(ResultSet resultSet) throws SQLException {
-        while (resultSet.next())
-            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL), new Date(resultSet.
-                            getTimestamp(PUBLISHED_DATE).getTime()),
+        while (resultSet.next()) {
+            printFeed(resultSet.getString(AGENCY_LITERAL), resultSet.getString(TITLE_LITERAL),
+                    new Date(resultSet.getTimestamp(PUBLISHED_DATE).getTime()),
                     resultSet.getString(DESCRIPTION_LITERAL), resultSet.getString(AUTHOR));
+        }
     }
 
     private static void searchTitleInDate(final Table rssFeeds, final String command) throws ParseException,
@@ -246,9 +259,10 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
@@ -270,9 +284,10 @@ public class App {
                     break;
                 } else {
                     LOGGER.info(THERE_IS_STILL_SOME_DATA_FOR_MORE_TYPE_Y);
-                    if (!SCANNER.next().trim().equalsIgnoreCase("y")) {
+                    if (!SCANNER.nextLine().trim().equalsIgnoreCase("y")) {
                         break;
                     }
+                    offset += 10;
                 }
             }
         }
@@ -282,12 +297,10 @@ public class App {
             description, final String
             author) {
         final String publishedDateString = publishedDate.toString();
-        LOGGER.info(agency);
-        LOGGER.info(title);
-        LOGGER.info(publishedDateString);
-        LOGGER.info(description);
-        LOGGER.info(author);
-        LOGGER.info("");
+        LOGGER.info("\nagency : " + agency + "\t published date : " + publishedDateString + "\t author : " + author);
+        LOGGER.info("\ttitle : " + title);
+        LOGGER.info("\tdescription : " + description);
+        LOGGER.info("*******************************************************************************************\n");
     }
 
     private static void writeToDB(final Table rssFeeds, ExternalData probs) {
@@ -299,15 +312,30 @@ public class App {
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(threadsOfPool);
         for (Map.Entry<String, String> agency : agencies.entrySet()) {
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(new ProcessAgency(rssFeeds, agency.getKey(),
-                            agency.getValue()), 0, 20000, TimeUnit.MILLISECONDS);
+                            agency.getValue()), 100, 60000, TimeUnit.MILLISECONDS);
         }
     }
 
     public static int resultSetSize(ResultSet resultSet) throws SQLException {
-        int len = 0;
-        while (resultSet.next()) {
-            len ++;
-        }
+        resultSet.last();
+        int len = resultSet.getRow();
+        resultSet.beforeFirst();
         return len;
+    }
+
+    private static void help() {
+        LOGGER.info("\n***********************************************************************************************************\n");
+        LOGGER.info("| for adding new rss : new_rss [agency_names agency_urls]                                                 |");
+        LOGGER.info("| for getting general status (number of agencies and number of all news in database) : status             |");
+        LOGGER.info("| for search in title : title part_of_title [<Optional>agency_name OR from_date to_date]                  |");
+        LOGGER.info("| for search in description : description part_of_description [<Optional>agency_name OR from_date to_date]|");
+        LOGGER.info("| date format must be like yyyy/mm/dd                                                                     |");
+        LOGGER.info("\n***********************************************************************************************************\n");
+    }
+
+    private static void getStatus(ExternalData probs, Table table) throws SQLException {
+        int numOfAgencies = probs.getAllAgencies().size();
+        int numOfAllNews = table.sizeOfAllNews();
+        LOGGER.info("\nnumber of news : " + numOfAllNews + " from " + numOfAgencies + " agencies.\n");
     }
 }

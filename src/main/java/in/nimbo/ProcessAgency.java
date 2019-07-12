@@ -29,7 +29,7 @@ public class ProcessAgency implements Runnable {
 
     @Override
     public void run() {
-        LOGGER.info(agencyName);
+        LOGGER.info("start reading rss from : " + agencyName);
         SyndFeed feed = null;
         try {
             feed = new SyndFeedInput().build(new XmlReader(new URL(agencyURL)));

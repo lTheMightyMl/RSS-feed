@@ -119,6 +119,24 @@ public class TableTest {
         Assert.assertTrue(r);
     }
 
+    @Test
+    public void sizeOfAllNews() throws Exception {
+        ExternalData props = new ExternalData("src/test/resources/data2.properties");
+        String url = props.getPropertyValue("url");
+        String name = props.getPropertyValue("table");
+        String user = props.getPropertyValue("user");
+        String password = props.getPropertyValue("password");
+        Table table = new Table(name, props);
+        table.insert("a", "a", new Date(20000), "a", "a");
+        table.insert("b", "d", new Date(20000), "a", "a");
+        table.insert("c", "a", new Date(20000), "a", "a");
+        table.insert("a", "z", new Date(20000), "a", "a");
+        table.insert("a", "a", new Date(20000), "a", "a");
+        Assert.assertEquals(table.sizeOfAllNews(), 4);
+        DriverManager.getConnection(url, user, password).prepareStatement("drop table " + name + ";").execute();
+        table.close();
+    }
+
     @AfterClass
     public static void droppingAll() throws Exception{
         if (conn.isClosed())
